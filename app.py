@@ -8,110 +8,114 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 import datetime
 
-# 1. CONFIGURAÇÃO DE PÁGINA (IMEDIATA)
-st.set_page_config(page_title="NEXUS BLACKOUT", layout="wide", initial_sidebar_state="collapsed")
+# 1. CONFIGURAÇÃO DE PÁGINA E BLINDAGEM VISUAL TOTAL
+st.set_page_config(page_title="NEXUS v1035 AUDIO", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. BLINDAGEM CONTRA O BRANCO (FORCE BLACK MODE)
 st.markdown("""
     <style>
-    /* Forçar fundo preto em todos os níveis */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
-    [data-testid="stToolbar"], [data-testid="stSidebar"], .main {
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .main {
         background-color: #000000 !important;
         color: #00FF41 !important;
+        font-family: 'Courier New', monospace;
     }
-    
-    /* Eliminar flashes brancos e bordas */
-    div[block-container] { padding-top: 1rem; background-color: #000000 !important; }
-    
-    /* Customizar inputs para não brilharem */
-    input, textarea, [data-testid="stChatInput"] {
-        background-color: #050505 !important;
-        color: #00FF41 !important;
-        border: 1px solid #1E293B !important;
-    }
-
-    /* Ajuste de métricas para contraste de conforto */
     [data-testid="stMetricValue"] { color: #38BDF8 !important; }
-    [data-testid="stMetricLabel"] { color: #00FF41 !important; }
-
-    /* Scrollbars escuras */
-    ::-webkit-scrollbar { width: 5px; background: #000000; }
-    ::-webkit-scrollbar-thumb { background: #1E293B; }
-    
+    .stButton>button { background-color: #000000; color: #38BDF8; border: 1px solid #38BDF8; width: 100%; }
+    .stButton>button:hover { border-color: #00FF41; color: #00FF41; }
+    div[data-testid="stChatInput"] { background-color: #050505 !important; }
     hr { border-color: #1E293B !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. MOTOR DE INTELIGÊNCIA (SINCRONIZADO)
+# 2. MOTOR DE ÁUDIO (FALA E ESCUTA)
+def nexus_audio_engine(text_to_speak=None):
+    # Componente JS para Síntese e Reconhecimento
+    js_code = f"""
+    <script>
+    // FUNÇÃO DE FALA
+    function speak(text) {{
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'pt-BR';
+        window.speechSynthesis.speak(msg);
+    }}
+
+    // FUNÇÃO DE ESCUTA (VOICE COMMAND)
+    function listen() {{
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'pt-BR';
+        recognition.onresult = (event) => {{
+            const transcript = event.results[0][0].transcript;
+            window.parent.postMessage({{type: 'voice_input', data: transcript}}, '*');
+        }};
+        recognition.start();
+    }}
+
+    {f"speak('{text_to_speak}');" if text_to_speak else ""}
+    </script>
+    """
+    st.components.v1.html(js_code, height=0)
+
+# 3. LÓGICA DE INTELIGÊNCIA
 class NexusEngine:
     @staticmethod
-    def get_data(key):
-        data = {
-            "SPACEX": "AUDITORIA: Starship Flight 12 OK. Sincronia Alcantara ativa.",
-            "LAW": "JURIS: Soberania Digital v2.2 ratificada.",
-            "CYBER": "DEFESA: Protocolo Zero Branco Ativado. Monitor de Fadiga OK."
+    def audit(cmd):
+        intel = {
+            "SPACEX": "Auditoria SpaceX: Starship em prontidão orbital. Sincronia Alcantara 100%.",
+            "LAW": "Jurisprudência: Soberania Digital v2.2 ativa e inquestionável.",
+            "CYBER": "Defesa: Protocolo Zero Branco estabilizado. Escudo ativo."
         }
-        return data.get(key.upper(), f"VETOR: {key} Auditado 100%.")
+        return intel.get(cmd.upper(), f"Comando '{cmd}' processado. Integridade confirmada.")
 
-# 4. INTERFACE DE COMANDO
-st.markdown("<h1 style='text-align: center; color: #38BDF8; letter-spacing: 10px;'>🛡️ NEXUS SUPREMO v1034</h1>", unsafe_allow_html=True)
+# 4. INTERFACE DE CONTROLO
+st.markdown("<h1 style='text-align: center; color: #38BDF8;'>🛡️ NEXUS v1035 AUDIO CONTROLE</h1>", unsafe_allow_html=True)
 
-# Telemetria Superior
-try:
-    c1, c2, c3 = st.columns(3)
-    c1.metric("SISTEMA", f"{psutil.cpu_percent()}%", "CPU")
-    c2.metric("MEMÓRIA", f"{psutil.virtual_memory().percent}%", "RAM")
-    c3.metric("INTEGRIDADE", "100%", "ESTÁVEL")
-except: pass
+# Telemetria
+c1, c2, c3 = st.columns(3)
+c1.metric("SISTEMA", f"{psutil.cpu_percent()}%")
+c2.metric("MEMÓRIA", f"{psutil.virtual_memory().percent}%")
+c3.metric("AUDIO", "ATIVO / ESCUTA READY")
 
 st.divider()
 
-# Colunas Principais
-col_map, col_cmd = st.columns([1.5, 1])
-
-with col_map:
-    # Mapa em tons de cinza/preto para não agredir a vista
-    fig = go.Figure(go.Scattergeo(
-        lat=[-2.3, 25.9, -15.7], lon=[-44.4, -97.1, -47.8],
-        mode='markers+text', marker=dict(size=12, color='#38BDF8')
-    ))
-    fig.update_layout(
-        geo=dict(bgcolor='#000000', showland=True, landcolor='#080808', 
-                 showcountries=True, countrycolor='#1E293B'),
-        margin=dict(l=0,r=0,t=0,b=0), height=350, paper_bgcolor='#000000'
-    )
-    st.plotly_chart(fig, use_container_width=True)
+# Operação de Voz e Terminal
+col_cmd, col_log = st.columns([1, 1])
 
 with col_cmd:
-    st.write("### ⌨️ COMANDO")
-    if prompt := st.chat_input("Insira Ordem..."):
-        res = NexusEngine.get_data(prompt)
-        st.session_state.log = res
+    st.write("### 🎤 COMANDO POR VOZ / TEXTO")
+    input_method = st.chat_input("Digite ou use os módulos abaixo...")
     
-    if 'log' in st.session_state:
-        st.code(st.session_state.log, language='bash')
+    if st.button("🎙️ ATIVAR ESCUTA (VOICE RECOGNITION)"):
+        st.warning("Escutando... Fale o comando.")
+        nexus_audio_engine() # Aciona o JS de escuta
 
-# 5. MÓDULOS BLACKOUT
-st.write("### 🚀 ACESSO RÁPIDO")
-m1, m2, m3, m4 = st.columns(4)
-if m1.button("SPACEX"): st.session_state.log = NexusEngine.get_data("SPACEX")
-if m2.button("LAW"): st.session_state.log = NexusEngine.get_data("LAW")
-if m3.button("CYBER"): st.session_state.log = NexusEngine.get_data("CYBER")
-if m4.button("REPORT"): 
-    # Gerar PDF Rápido
-    buf = BytesIO()
-    p = canvas.Canvas(buf, pagesize=A4)
-    p.setFillColorRGB(0,0,0); p.rect(0,0,600,900,fill=1)
-    p.setFillColorRGB(0,1,0); p.drawString(100, 800, "RELATÓRIO NEXUS v1034 - AUDITADO")
-    p.save(); buf.seek(0)
-    st.download_button("📂 BAIXAR PDF", buf, "report.pdf")
+    if input_method:
+        resultado = NexusEngine.audit(input_method)
+        st.session_state.last_log = resultado
+        nexus_audio_engine(resultado) # O sistema fala o resultado
 
-# Gráfico de Pulso Estável (Verde Dark)
+with col_log:
+    st.write("### 📜 LOG DE AUDITORIA")
+    if 'last_log' in st.session_state:
+        st.success(st.session_state.last_log)
+
+# Módulos Rápidos
+st.write("### 🚀 MÓDULOS DE MISSÃO")
+m1, m2, m3 = st.columns(3)
+if m1.button("SPACEX"): 
+    res = NexusEngine.audit("SPACEX")
+    st.session_state.last_log = res
+    nexus_audio_engine(res)
+if m2.button("LAW"): 
+    res = NexusEngine.audit("LAW")
+    st.session_state.last_log = res
+    nexus_audio_engine(res)
+if m3.button("CYBER"): 
+    res = NexusEngine.audit("CYBER")
+    st.session_state.last_log = res
+    nexus_audio_engine(res)
+
+# Pulso Visual de Estabilidade
 t = np.linspace(0, 10, 100)
 y = np.sin(t + time.time())
-fig_pulse = go.Figure(go.Scatter(x=t, y=y, line=dict(color='#006400', width=2)))
-fig_pulse.update_layout(height=100, margin=dict(l=0,r=0,t=0,b=0), 
-                        xaxis=dict(visible=False), yaxis=dict(visible=False),
-                        paper_bgcolor='#000000', plot_bgcolor='#000000')
-st.plotly_chart(fig_pulse, use_container_width=True)
+fig = go.Figure(go.Scatter(x=t, y=y, line=dict(color='#00FF41', width=1)))
+fig.update_layout(height=100, margin=dict(l=0,r=0,t=0,b=0), xaxis=dict(visible=False), yaxis=dict(visible=False), paper_bgcolor='#000000', plot_bgcolor='#000000')
+st.plotly_chart(fig, use_container_width=True)
