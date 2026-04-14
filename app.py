@@ -5,69 +5,73 @@ from fpdf import FPDF
 import datetime
 import psutil
 
-# 1. PROTOCOLO DE EXTERMÍNIO DO BRANCO & FRONT-END ORIGINAL
-st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide", initial_sidebar_state="collapsed")
+# 1. OVERRIDE DE INTERFACE: BLACKOUT TOTAL & VERDE MATRIX
+st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide")
 
 st.markdown(
     """
     <style>
-    /* FORÇAR BLACKOUT EM TODAS AS CAMADAS */
+    /* Injeção de Nível Zero: Cor de Fundo e Texto */
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
         background-color: #000000 !important;
         color: #00FF41 !important;
+        font-family: 'Courier New', Courier, monospace !important;
     }
     
-    /* REMOVER QUALQUER BORDA OU SOMBRA BRANCA */
-    [data-testid="stToolbar"], [data-testid="stDecoration"], footer {
+    /* Eliminação de Resíduos Brancos (Toolbars e Dividers) */
+    [data-testid="stToolbar"], [data-testid="stDecoration"], footer, hr {
         display: none !important;
     }
 
-    /* INPUT COMMAND - ESTÉTICA MATRIX */
-    div[data-baseweb="base-input"], [data-testid="stChatInput"] {
+    /* Input de Comando: Blackout Reengenheirado */
+    [data-testid="stChatInput"], div[data-baseweb="base-input"], div[role="textbox"] {
         background-color: #000000 !important;
         border: 1px solid #00FF41 !important;
+        border-radius: 4px;
     }
     
     input, textarea {
         color: #00FF41 !important;
         background-color: #000000 !important;
-        caret-color: #00FF41 !important;
+        -webkit-text-fill-color: #00FF41 !important;
     }
 
-    /* BOTÕES FUNCIONAIS */
+    /* Estilização de Botões Funcionais (Matrix Style) */
     .stButton>button {
         width: 100%;
         background-color: #000000 !important;
         color: #00FF41 !important;
         border: 1px solid #00FF41 !important;
-        font-weight: bold;
+        transition: 0.3s;
     }
     .stButton>button:hover {
         background-color: #00FF41 !important;
         color: #000000 !important;
+        box-shadow: 0 0 15px #00FF41;
     }
 
-    /* MÉTRICAS ORIGINAIS */
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+    /* Métricas e Alertas */
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"], .stAlert {
+        background-color: #000000 !important;
         color: #00FF41 !important;
+        border: 1px solid #00FF41 !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 2. FUNÇÕES DE VOZ (ESCUTA E FALA) - PLACEHOLDERS PARA API
-def speak_command(text):
-    # Função para disparar áudio no navegador via JS
+# 2. MÓDULO DE VOZ MULTILINGUE (SPEAK)
+def speak_command(text, lang='pt-BR'):
     st.components.v1.html(f"""
         <script>
         var msg = new SpeechSynthesisUtterance('{text}');
-        msg.lang = 'en-US';
+        msg.lang = '{lang}';
         window.speechSynthesis.speak(msg);
         </script>
     """, height=0)
 
-# 3. GERADOR DE DOSSIÊ ($500/H)
+# 3. MÓDULO DE IMPRESSÃO DE PDF (R$ 1.000/H)
 def generate_dossier(cmd):
     pdf = FPDF()
     pdf.add_page()
@@ -75,43 +79,56 @@ def generate_dossier(cmd):
     pdf.rect(0, 0, 210, 297, 'F')
     pdf.set_text_color(0, 255, 65)
     pdf.set_font("Courier", "B", 16)
-    pdf.cell(0, 10, "XEON COMMAND - OFFICIAL AUDIT", 0, 1, 'C')
+    pdf.cell(0, 10, "XEON COMMAND - ELITE AUDIT", 0, 1, 'C')
     pdf.ln(10)
-    pdf.set_font("Courier", "", 11)
-    body = f"PROTOCOL: EB-1A INFRASTRUCTURE AUDIT\nEXPERT: MARCO ANTONIO DO NASCIMENTO\nRATE: $500.00/HOUR\nOPERATION: {cmd}\nSTATUS: IMMUTABLE LEDGER VERIFIED"
+    pdf.set_font("Courier", "", 12)
+    body = (
+        f"AUDIT PROTOCOL: CRITICAL INFRASTRUCTURE\n"
+        f"EXPERT: MARCO ANTONIO DO NASCIMENTO\n"
+        f"VALUATION: R$ 1.000,00 / HOUR\n"
+        f"TIMESTAMP: {datetime.datetime.now()}\n"
+        f"COMMAND LOG: {cmd}\n"
+        "STATUS: NOMINAL / IMMUTABLE LEDGER VERIFIED"
+    )
     pdf.multi_cell(0, 10, body)
     return pdf.output(dest='S').encode('latin-1')
 
-# 4. FRONT-END ORIGINAL RECONSTITUÍDO
+# 4. DASHBOARD E BOTÕES FUNCIONAIS (FRONT-END ORIGINAL)
 st.title("🛰️ X E O N   C O M M A N D   v 5 4 . 0")
 
-# Grid de Métricas
+# Métricas de Hardware
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("CLOUD LOAD", f"{psutil.cpu_percent()}%", "NOMINAL")
+c1.metric("LOAD", f"{psutil.cpu_percent()}%", "SYSTEM")
 c2.metric("UPTIME", "STABLE", "24/7")
-c3.metric("LEDGER SYNC", "IMMUTABLE", "v2.2")
-c4.metric("VALUATION", "$500/h", "ACTIVE")
+c3.metric("LEDGER", "AIOSQLITE", "ACTIVE")
+c4.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
-# Botões de Ação Direta (Funções originais)
-col_a, col_b, col_c = st.columns(3)
-with col_a:
-    if st.button("🎙️ START LISTENING (LISTEN)"):
-        st.info("Listening for Global Command...")
-        # Lógica de escuta (browser-side) seria integrada aqui
-with col_b:
-    if st.button("🔊 VOICE RESPONSE (SPEAK)"):
-        speak_command("System nominal. Sovereign operations active.")
-with col_c:
-    if st.button("📄 GENERATE EB-1A DOSSIER"):
-        pdf_bytes = generate_dossier("EB-1A Strategic Audit")
-        st.download_button("DOWNLOAD DOSSIER", pdf_bytes, "XEON_EB1A.pdf", "application/pdf")
+# Painel de Controle de Voz e Documentação
+col_listen, col_speak, col_pdf = st.columns(3)
 
-# 5. INPUT COMMAND (ESTÉTICA MATRIX)
+with col_listen:
+    if st.button("🎙️ START LISTENING (EN/PT)"):
+        st.warning("Listening Protocol Active... (Speak now)")
+        # A integração de escuta browser-side requer Web Speech API via JS
+
+with col_speak:
+    if st.button("🔊 VOICE RESPONSE (SOH v2.2)"):
+        speak_command("System nominal. Rate established at one thousand reais per hour.", lang='en-US')
+        speak_command("Sistema nominal. Taxa estabelecida em mil reais por hora.", lang='pt-BR')
+
+with col_pdf:
+    if st.button("📄 PRINT AUDIT DOSSIER"):
+        pdf_bytes = generate_dossier("Manual Trigger Audit")
+        st.download_button("💾 DOWNLOAD R$ 1.000/H PDF", pdf_bytes, "XEON_AUDIT_1000.pdf", "application/pdf")
+
+# 5. COMMAND INPUT (ESTÉTICA MATRIX)
 prompt = st.chat_input("Insert Global Command...")
 
 if prompt:
-    st.write(f"[>] Processed: {prompt}")
+    st.write(f"[>] Processed by Diana Filter: {prompt}")
     if "speak" in prompt.lower():
-        speak_command(prompt.replace("speak", ""))
+        speak_command(prompt.replace("speak", ""), lang='en-US')
+    elif "fale" in prompt.lower():
+        speak_command(prompt.replace("fale", ""), lang='pt-BR')
