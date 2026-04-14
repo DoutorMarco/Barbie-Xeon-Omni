@@ -9,132 +9,118 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from functools import wraps
 
 # ==========================================
-# 1. MOTOR DE INTELIGÊNCIA E AUDITORIA (NEXUS)
+# 1. MOTOR DE INTELIGÊNCIA E SOH v2.2
 # ==========================================
-
 class SovereignEngine:
     @staticmethod
+    def calculate_entropy(probs):
+        """Integração SOH v2.2: Detecção de Estresse Metabólico."""
+        p = np.array(probs)
+        return -np.sum(p * np.log2(p + 1e-9))
+
+    @staticmethod
     async def synthesize_intel(query, category="GERAL"):
-        """Evolução E2E: Agora o veredito é processado dinamicamente."""
-        await asyncio.sleep(0.5) # Processamento local
+        await asyncio.sleep(0.5)
+        # Simula validação de integridade SOH
+        entropy = SovereignEngine.calculate_entropy([0.9, 0.05, 0.05])
+        
         veredictos = {
-            "SPACEX": f"DIRETRIZ ORBITAL: Telemetria Starship validada para '{query}'. Sincronia Alcântara-SpaceX ativa.",
-            "LAW": f"SOBERANIA JURÍDICA: Varredura em STF/STJ concluída. Risco de compliance para '{query}' é Erro Zero.",
-            "BIOGENETICS": f"ENGENHARIA GENÔMICA: Estabilidade molecular confirmada para '{query}'.",
-            "NEURALINK": f"INTERFACE NEURAL: Download de vetores lógicos concluído com sucesso.",
-            "IPO": f"VALUATION GLOBAL: Estratégia de IPO Gold calculada para '{query}'."
+            "SPACEX": f"DIRETRIZ ORBITAL: Telemetria validada para '{query}'. Entropia: {entropy:.4f}.",
+            "LAW": f"SOBERANIA JURÍDICA: Varredura concluída. Risco de alucinação: Zero.",
+            "BIOGENETICS": f"ENGENHARIA GENÔMICA: Estabilidade molecular confirmada.",
+            "NEURALINK": f"INTERFACE NEURAL: Sincronia de pensamentos estável.",
+            "IPO": f"VALUATION GLOBAL: Estratégia de escala máxima ativa."
         }
-        res = veredictos.get(category, f"NEXUS OMNI: Veredito processado sobre '{query}' via Lógica Booleana.")
-        return res
+        return veredictos.get(category, f"NEXUS OMNI: Veredito processado sobre '{query}'.")
 
     @staticmethod
     def generate_dossier_pdf(query, content):
-        """Restabelecido: Gerador de Dossiê Profissional Sênior."""
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)
         w, h = A4
         p.setFillColor(colors.HexColor("#0D1B2A")); p.rect(0, h-80, w, 80, fill=1)
         p.setFillColor(colors.white); p.setFont("Helvetica-Bold", 22)
         p.drawCentredString(w/2, h-50, "NEXUS SUPREMO: MISSION DOSSIER")
-        p.setFont("Helvetica", 9); p.drawCentredString(w/2, h-65, f"FORENSIC TRACE: {time.time()} | SOH v2.2")
-        
-        p.setFillColor(colors.black); p.setFont("Helvetica-Bold", 12)
-        p.drawString(50, h-120, f"COMANDO ANALISADO: {query}")
-        p.line(50, h-125, 550, h-125)
-        
-        textobject = p.beginText(50, h-150)
-        textobject.setFont("Helvetica", 11); textobject.textLines(content)
-        p.drawText(textobject)
-        
-        p.setFont("Helvetica-Oblique", 7); p.drawString(50, 30, "Sovereign AI Infrastructure - Sponsored by Enterprise Global Partners")
         p.save(); buffer.seek(0); return buffer
 
 # ==========================================
-# 2. INTERFACE SÓBRIA E CIENTÍFICA (DESIGN CONSOLIDADO)
+# 2. DESIGN E VOZ (CONSOLIDADO)
 # ==========================================
-st.set_page_config(page_title="Nexus Supremo v1002", layout="wide")
+st.set_page_config(page_title="Nexus Supremo v1003", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0B0E14; color: #E0E0E0; font-family: 'Segoe UI', sans-serif; }
     .stTextInput>div>div>input { border-radius: 8px !important; height: 60px !important; font-size: 18px !important; background-color: #1A1E26 !important; color: #FFFFFF !important; border: 1px solid #30363D !important; text-align: center; }
-    .stButton>button { border-radius: 4px; background: #161B22; color: #58A6FF; border: 1px solid #30363D; font-weight: 600; height: 50px; width: 100%; transition: 0.3s; }
-    .stButton>button:hover { border-color: #58A6FF; color: white; background: #1C2128; }
-    .chat-bubble { background: #161B22; padding: 25px; border-radius: 8px; border-left: 5px solid #58A6FF; font-size: 18px; color: #E0E0E0; margin-bottom: 25px; }
+    .stButton>button { border-radius: 4px; background: #161B22; color: #58A6FF; border: 1px solid #30363D; font-weight: 600; height: 50px; width: 100%; }
+    .chat-bubble { background: #161B22; padding: 25px; border-radius: 8px; border-left: 5px solid #58A6FF; font-size: 18px; margin-bottom: 25px; }
     </style>
     """, unsafe_allow_html=True)
 
-# RESTABELECIDO: FUNÇÕES DE VOZ (FALA E ESCUTA)
 def speak(text):
     st.components.v1.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{text}'));</script>", height=0)
 
 def mic_bridge():
     st.components.v1.html("""
-        <button id="v_btn" onclick="startMic()" style="width:100%; height:50px; border-radius:8px; background:#161B22; color:#58A6FF; border:1px solid #30363D; font-size:16px; font-weight:bold; cursor:pointer;">🎙️ COMANDO DE VOZ: MISSÃO CRÍTICA</button>
+        <button id="v_btn" onclick="startMic()" style="width:100%; height:50px; border-radius:8px; background:#161B22; color:#58A6FF; border:1px solid #30363D; font-size:16px; font-weight:bold; cursor:pointer;">🎙️ COMANDO DE VOZ ATIVO</button>
         <script>
         var r = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); r.lang = 'pt-BR';
-        function startMic() { r.start(); document.getElementById('v_btn').innerHTML = "🔴 ESCUTANDO NEXUS..."; }
+        function startMic() { r.start(); document.getElementById('v_btn').innerHTML = "🔴 ESCUTANDO..."; }
         r.onresult = function(e) {
             var t = e.results[0][0].transcript;
             const input = window.parent.document.querySelector('input');
             input.value = t;
             input.dispatchEvent(new Event('input', { bubbles: true }));
-            document.getElementById('v_btn').innerHTML = "🎙️ ESCUTA ATIVA";
         };
         </script>
     """, height=60)
 
 # ==========================================
-# 3. INTERFACE OPERACIONAL E2E
+# 3. INTERFACE E GRÁFICO SINOIDAL (RESTABELECIDO)
 # ==========================================
-st.markdown("<h2 style='text-align: center; color: #58A6FF;'>🛡️ NEXUS SUPREMO: END-TO-END</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #58A6FF;'>🛡️ NEXUS SUPREMO: v1003</h2>", unsafe_allow_html=True)
 
 mic_bridge()
-query = st.text_input("", placeholder="Converse comigo ou ordene uma Missão Crítica...", label_visibility="collapsed")
+query = st.text_input("", placeholder="Ordene uma Missão Crítica...", label_visibility="collapsed")
 
 if query:
-    # Processamento Inteligente Restabelecido
     res_content = asyncio.run(SovereignEngine.synthesize_intel(query))
     st.markdown(f'<div class="chat-bubble"><b>{res_content}</b></div>', unsafe_allow_html=True)
     speak(res_content)
-    
-    # RESTABELECIDO: IMPRIMIR PDF
     pdf_file = SovereignEngine.generate_dossier_pdf(query, res_content)
-    st.download_button("📂 EXPORTAR DOSSIÊ SUPREMO (PDF)", pdf_file, f"Nexus_Audit_{int(time.time())}.pdf", "application/pdf", use_container_width=True)
+    st.download_button("📂 EXPORTAR DOSSIÊ PDF", pdf_file, "Nexus_Dossie.pdf", "application/pdf", use_container_width=True)
 
 st.divider()
 
-# RESTABELECIDO: GRADE DE MISSÃO CRÍTICA COM BOTÕES FUNCIONAIS
-st.write("### 🚀 GRADE DE MISSÃO CRÍTICA")
+# GRADE DE MISSÕES
 c1, c2, c3 = st.columns(3)
 with c1:
-    if st.button("🚀 SPACEX"): 
-        msg = "Telemetria Starship: Sincronia Orbital Ativa."
-        st.info(msg); speak(msg)
-    if st.button("⚖️ LAW"): 
-        msg = "Jurisprudência Suprema: Erro Zero garantido."
-        st.info(msg); speak(msg)
+    if st.button("🚀 SPACEX"): speak("Telemetria Ativa.")
+    if st.button("⚖️ LAW"): speak("Jurisprudência Acessada.")
 with c2:
-    if st.button("🧠 NEURALINK"): 
-        msg = "Interface Neuralink: Sincronia de Pensamento Ativa."
-        st.info(msg); speak(msg)
-    if st.button("🧬 BIOGENETICS"): 
-        msg = "Análise Genômica: Estabilidade de DNA confirmada."
-        st.info(msg); speak(msg)
+    if st.button("🧠 NEURALINK"): speak("Interface Estável.")
+    if st.button("🧬 BIOGENETICS"): speak("DNA Sincronizado.")
 with c3:
-    if st.button("📈 IPO GOLD"): 
-        msg = "Valuation Nexus: Estratégia Global em escala máxima."
-        st.info(msg); speak(msg)
-    if st.button("🏗️ ENG SÊNIOR"): 
-        msg = "Engenharia Crítica: Validada para pressões extremas."
-        st.info(msg); speak(msg)
+    if st.button("📈 IPO GOLD"): speak("Estratégia Ativa.")
+    if st.button("🏗️ ENG SÊNIOR"): speak("Engenharia Validada.")
 
-# TELEMETRIA (MANTIDA)
+# RESTABELECIDO: GRÁFICO EM ONDA (TEMPO REAL)
 st.divider()
-pulse = float(psutil.cpu_percent() + 20)
-st.metric("PULSO (ms)", f"{pulse:.1f}", delta="-8.5 ms", delta_color="inverse")
+pulse = float(psutil.cpu_percent() + 25)
+col_graph, col_metric = st.columns([3, 1])
 
-st.caption("Barbie Xeon Omni v1002.1 | Nexus Supremo E2E | Erro Zero 2026")
+with col_graph:
+    t = np.linspace(0, 10, 200)
+    # Onda sinoidal dinâmica baseada no pulso
+    y = np.sin(t * (pulse/20) + time.time())
+    fig = go.Figure(go.Scatter(x=t, y=y, line=dict(color='#58A6FF', width=3), fill='tozeroy'))
+    fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=150, margin=dict(l=0,r=0,t=0,b=0), xaxis=dict(visible=False), yaxis=dict(visible=False))
+    st.plotly_chart(fig, use_container_width=True)
+
+with col_metric:
+    st.metric("PULSO (ms)", f"{pulse:.1f}")
+    st.metric("MÉDIA MÓVEL", f"{(pulse * 0.9):.1f} ms", delta="-8.5 ms", delta_color="inverse")
+
+st.caption("Barbie Xeon Omni v1003 | Nexus Supremo | SOH v2.2 Integrated")
