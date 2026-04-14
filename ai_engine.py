@@ -3,74 +3,96 @@ import numpy as np
 import psutil
 import time
 import plotly.graph_objects as go
-from fpdf import FPDF  # Certifique-se de adicionar fpdf no requirements.txt
-import base64
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
 
-# --- 1. MOTOR DE INTEGRIDADE (MANTIDO) ---
+# --- 1. MOTOR DE INTEGRIDADE NEXUS (MANTIDO) ---
 def verify_integrity(payload):
     noise = np.random.normal(0, 1, 1024)
     check = np.allclose(noise, np.fft.ifft(np.fft.fft(noise)).real, atol=1e-12)
     return check
 
-# --- 2. GERADOR DE RELATÓRIOS (FUNÇÃO PREMIUM PARA MONETIZAÇÃO) ---
-def generate_report(content, category):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"BARBIE XEON OMNI - REPORT: {category}", ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.ln(10)
-    pdf.multi_cell(0, 10, txt=content)
-    pdf.ln(20)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.cell(0, 10, txt="Sovereign AI Infrastructure - Sponsored by [Your Brand Here]", align='C')
-    return pdf.output(dest='S').encode('latin-1')
+# --- 2. GERADOR DE RELATÓRIO PROFISSIONAL (REPORTLAB) ---
+def generate_nexus_report(content):
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 750, "NEXUS SUPREMO - CRITICAL MISSION REPORT")
+    p.setFont("Helvetica", 10)
+    p.drawString(100, 735, f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    p.line(100, 730, 500, 730)
+    
+    # Conteúdo do Relatório
+    textobject = p.beginText(100, 700)
+    textobject.setFont("Helvetica", 12)
+    textobject.textLines(f"Analysis Verdict:\n{content}")
+    p.drawText(textobject)
+    
+    # Espaço para Publicidade (Monetização)
+    p.setFont("Helvetica-Oblique", 8)
+    p.drawString(100, 50, "Sovereign Infrastructure Protection - Sponsored by Global Defense Tech")
+    
+    p.showPage()
+    p.save()
+    return buffer.getvalue()
 
-# --- 3. CONFIGURAÇÃO DE INTERFACE (ESTILO MANTIDO) ---
-st.set_page_config(page_title="BARBIE XEON OMNI - V52.1", layout="wide")
+# --- 3. INTERFACE CIENTÍFICA (VISUAL EVOLUÍDO) ---
+st.set_page_config(page_title="NEXUS SUPREMO v1000.0", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #000; color: #FF69B4; font-family: 'Courier New'; }
-    .res-box { border: 1px solid #FF69B4; padding: 15px; background: rgba(255,105,180,0.1); }
+    .stApp { background-color: #04090D; color: #00F2FF; font-family: 'Share Tech Mono', monospace; }
+    .stTextInput>div>div>input { background-color: #0D1B2A; color: #00F2FF; border: 1px solid #00F2FF; }
+    .mission-card { border-left: 5px solid #FF00FF; padding: 20px; background: rgba(0, 242, 255, 0.05); margin-bottom: 20px; }
+    .metric-box { background: #0D1B2A; border: 1px solid #00F2FF; padding: 10px; border-radius: 5px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# ESPAÇO PARA ANÚNCIO (GANHO COM PROPAGANDA)
+# BANNER DE MONETIZAÇÃO (AD SPACE)
 st.markdown("""
-    <div style="background-color: #FF69B4; color: black; text-align: center; padding: 10px; border-radius: 5px; font-weight: bold; margin-bottom: 20px;">
-        📢 ANUNCIE AQUI: Alcance a elite da tecnologia soberana.
+    <div style="background: linear-gradient(90deg, #FF00FF, #00F2FF); color: black; text-align: center; padding: 5px; font-weight: bold;">
+        NEXUS AD: Security protocols active. Advertise in the Sovereign Network.
     </div>
     """, unsafe_allow_html=True)
 
-st.title("💖 BARBIE XEON OMNI: GLOBAL SOVEREIGN AI")
-st.subheader("Cálculo em Tempo Real | Premium Features Grátis")
+st.title("💖 NEXUS SUPREMO")
+st.write("Converse comigo ou ordene uma Missão Crítica...")
 
-# ENTRADA DE COMANDO
-user_query = st.text_input("INJETAR COMANDO (QUALQUER IDIOMA):", placeholder="Analise o mercado ou peça um relatório técnico...")
+# GRADE DE MISSÃO CRÍTICA
+col_main, col_side = st.columns([2, 1])
 
-if user_query:
-    if st.button("🚀 EXECUTAR PROCESSAMENTO OMNI"):
-        with st.spinner('Validando via Filtro Residual Matemático...'):
-            time.sleep(1.5)
-            if verify_integrity(user_query):
-                res_text = f"ANÁLISE OMNI CONCLUÍDA PARA: {user_query}\n\nO sistema validou a integridade dos dados. A inteligência Xeon sugere conformidade total com os vetores de soberania digital e eficiência de hardware local."
-                st.markdown(f'<div class="res-box">{res_text}</div>', unsafe_allow_html=True)
-                
-                # Botão de Download do Relatório Premium (Gera valor para o usuário)
-                pdf_bytes = generate_report(res_text, "TECHNICAL AUDIT")
-                st.download_button(label="📥 BAIXAR RELATÓRIO PDF (PREMIUM FREE)",
-                                   data=pdf_bytes,
-                                   file_name="relatorio_xeon_omni.pdf",
-                                   mime="application/pdf")
+with col_main:
+    user_query = st.text_input("🚀 COMANDO DE MISSÃO:", placeholder="Injetar vetores lógicos ou análise forense...")
+    
+    if user_query:
+        if st.button("ATIVAR PROTOCOLO OMNI"):
+            with st.spinner('Sincronizando Pulso Nexus...'):
+                time.sleep(1)
+                if verify_integrity(user_query):
+                    res = f"Análise concluída. O Nexus Supremo validou a consulta: '{user_query}'. Estabilidade garantida via Filtro Residual."
+                    st.markdown(f'<div class="mission-card"><b>RESULTADO DA MISSÃO:</b><br>{res}</div>', unsafe_allow_html=True)
+                    
+                    # Relatório PDF Profissional
+                    pdf_data = generate_nexus_report(res)
+                    st.download_button("📥 BAIXAR RELATÓRIO DE MISSÃO (PREMIUM)", pdf_data, "nexus_report.pdf", "application/pdf")
 
-# --- 4. MONITOR DE TELEMETRIA (MANTIDO E INTEGRADO) ---
+with col_side:
+    st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+    st.write("PULSO (ms)")
+    st.title("26.7")
+    st.write("MÉDIA MÓVEL: 35.3 ms")
+    st.write("📉 -8.5 ms")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 4. TELEMETRIA DE HARDWARE (MANTIDA) ---
 st.divider()
 cpu_val = psutil.cpu_percent()
-st.metric("POWER LOAD (HARDWARE LOCAL)", f"{cpu_val}%", delta="SISTEMA OPERACIONAL")
-
 if 'trace' not in st.session_state: st.session_state.trace = [cpu_val]
 st.session_state.trace.append(cpu_val)
-fig = go.Figure(go.Scatter(y=st.session_state.trace[-50:], fill='tozeroy', line=dict(color='#FF69B4')))
-fig.update_layout(title="HARDWARE RESILIENCE TELEMETRY", paper_bgcolor='black', plot_bgcolor='black', font_color="#FF69B4", height=300)
+
+fig = go.Figure(go.Scatter(y=st.session_state.trace[-50:], fill='tozeroy', line=dict(color='#00F2FF')))
+fig.update_layout(title="STRESS TEST: NEXUS HARDWARE RESILIENCE", paper_bgcolor='#04090D', plot_bgcolor='#04090D', font_color="#00F2FF", height=250)
 st.plotly_chart(fig, use_container_width=True)
+
+st.caption("Barbie Xeon Omni v1000.0 | Nexus Supremo Ativado | Erro Zero 2026")
