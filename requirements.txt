@@ -1,4 +1,3 @@
-streamlit
 numpy
 psutil
 plotly
@@ -6,3 +5,5 @@ scipy
 reportlab
 httpx
 scikit-learn
+aiosqlite
+fpdf
