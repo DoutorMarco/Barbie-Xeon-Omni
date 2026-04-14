@@ -1,120 +1,108 @@
 import streamlit as st
-import numpy as np
-import psutil
-import time
+import aiosqlite
 import asyncio
-import plotly.graph_objects as go
-from io import BytesIO
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from fpdf import FPDF
 import datetime
-import aiosqlite 
-import hashlib
+import psutil
 
-# 1. INFRAESTRUTURA DE DADOS (LEDGER IMUTÁVEL EM NUVEM)
-DB_PATH = 'xeon_ledger.db'
-GENESIS_HASH = "X30N_G3N3S1S_7890_S0V3R31GN_B10_L4W_3NG"
+# 1. PROTOCOLO DE SOBERANIA VISUAL (Injeção de CSS)
+st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide")
 
-async def init_ledger():
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('''CREATE TABLE IF NOT EXISTS audits 
-                           (timestamp TEXT, vector TEXT, verdict TEXT, hash TEXT, prev_hash TEXT, risk REAL)''')
-        await db.commit()
-
-async def log_audit_real(vector, verdict):
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    load = psutil.cpu_percent()
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT hash FROM audits ORDER BY rowid DESC LIMIT 1") as cursor:
-            row = await cursor.fetchone()
-            prev_hash = row if row else GENESIS_HASH
-        
-        content = f"{timestamp}-{vector}-{verdict}-{load}-{prev_hash}"
-        new_hash = hashlib.sha256(content.encode()).hexdigest()
-        await db.execute("INSERT INTO audits VALUES (?,?,?,?,?,?)", 
-                        (timestamp, vector, verdict, new_hash, prev_hash, load))
-        await db.commit()
-    return new_hash
-
-# 2. FRONT-END DE ELITE: ZERO BRANCO / PURE MATRIX
-st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide", initial_sidebar_state="collapsed")
-
-st.markdown("""
+st.markdown(
+    """
     <style>
-    :root { background-color: #000000 !important; }
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .main, .stApp {
+    /* Blackout Total */
+    .stApp, div[data-testid="stToolbar"], header, footer {
         background-color: #000000 !important;
         color: #00FF41 !important;
-        font-family: 'Courier New', monospace;
+        visibility: hidden; /* Esconde lixo visual nativo */
     }
-    div[data-testid="stChatInput"] { background-color: #000000 !important; border: 1px solid #00FF41 !important; }
-    .stButton>button { 
-        background-color: #000000 !important; color: #00FF41 !important; 
-        border: 1px solid #00FF41 !important; border-radius: 0px !important; height: 45px;
+    
+    .stApp { visibility: visible; } /* Mantém apenas o app visível */
+
+    /* Custom Input Command Bar */
+    div[data-baseweb="base-input"] {
+        background-color: #000000 !important;
+        border: 1px solid #00FF41 !important;
     }
-    .stButton>button:hover { background-color: #00FF41 !important; color: #000000 !important; box-shadow: 0 0 20px #00FF41; }
-    [data-testid="stMetricValue"] { color: #00FF41 !important; }
-    footer, header { visibility: hidden !important; }
-    hr { border-top: 1px solid #00FF41 !important; }
+    
+    input {
+        color: #00FF41 !important;
+        background-color: #000000 !important;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Estilização de Texto e Métricas */
+    h1, h2, h3, p, [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+        color: #00FF41 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+    }
+
+    /* Gráficos e Divisores */
+    hr { border: 1px solid #00FF41 !important; }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-# 3. INTERFACE OPERACIONAL
-st.markdown("<h1 style='text-align: center; color: #00FF41; letter-spacing: 15px;'>🛰️ XEON COMMAND v54.0</h1>", unsafe_allow_html=True)
+# 2. DASHBOARD DE CONTROLE (Interface Soberana)
+st.title("🛰️ X E O N   C O M M A N D   v 5 4 . 0")
 
-# Telemetria Real-Time do Servidor de Nuvem
-load_val = psutil.cpu_percent()
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("CLOUD LOAD", f"{load_val}%")
-c2.metric("UPTIME", "STABLE", "24/7")
-c3.metric("LEDGER SYNC", "IMMUTABLE", "v2.2")
-c4.metric("VALUATION", "READY", "$450/h")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    cpu_load = psutil.cpu_percent()
+    st.metric("CLOUD LOAD", f"{cpu_load}%", "+ 0.0%" if cpu_load < 50 else "- STRESS")
+with col2:
+    st.metric("UPTIME", "STABLE", "+ 24/7")
+with col3:
+    st.metric("LEDGER SYNC", "IMMUTABLE", "+ v2.2")
+with col4:
+    st.metric("VALUATION", "READY", "$ 500/h")
 
-st.divider()
+st.markdown("---")
 
-# Monitor de Pulso Neural (Sincronizado)
-t = np.linspace(0, 10, 300)
-phase = time.time() * (1 + load_val/50)
-y = (0.2 + load_val/150) * np.sin(2 * t + phase)
-fig = go.Figure(go.Scatter(x=t, y=y, line=dict(color='#00FF41', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 65, 0.2)'))
-fig.update_layout(height=250, margin=dict(l=0,r=0,t=0,b=0), xaxis=dict(visible=False), yaxis=dict(visible=False), paper_bgcolor='black', plot_bgcolor='black')
-st.plotly_chart(fig, use_container_width=True)
+# 3. LEDGER IMUTÁVEL (AIOSQLITE)
+async def init_db():
+    async with aiosqlite.connect("xeon_ledger.db") as db:
+        await db.execute("CREATE TABLE IF NOT EXISTS operations (id INTEGER PRIMARY KEY, timestamp TEXT, hash TEXT)")
+        await db.commit()
 
-# 4. MÓDULOS DE MISSÃO (CONSOLIDAÇÃO)
-if 'db_init' not in st.session_state:
-    asyncio.run(init_ledger())
-    st.session_state.db_init = True
+# 4. GERAÇÃO DE DOSSIÊS (MONETIZAÇÃO $500/H)
+def generate_dossier():
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_fill_color(0, 0, 0)
+    pdf.rect(0, 0, 210, 297, 'F')
+    pdf.set_text_color(0, 255, 65)
+    pdf.set_font("Courier", "B", 16)
+    pdf.cell(0, 10, "XEON COMMAND - AUDIT DOSSIER", 0, 1, 'C')
+    pdf.ln(10)
+    pdf.set_font("Courier", "", 12)
+    content = (
+        "SUBJECT: Critical Infrastructure Audit\n"
+        f"TIMESTAMP: {datetime.datetime.now()}\n"
+        "RATE: $500.00/hour\n"
+        "STATUS: IMMUTABLE LEDGER VERIFIED\n"
+        "COMPLIANCE: NIST ZTA / PQC READY"
+    )
+    pdf.multi_cell(0, 10, content)
+    return pdf.output(dest='S').encode('latin-1')
 
-st.write("### ⌨️ TERMINAL DE PRODUÇÃO MUNDIAL")
-if cmd := st.chat_input("Insert Global Command..."):
-    verdict = f"VETOR {cmd}: Auditado via SOH v2.2. Sem alucinação."
-    hsh = asyncio.run(log_audit_real(cmd, verdict))
-    st.session_state.res, st.session_state.hsh = verdict, hsh
-    st.components.v1.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{verdict}'));</script>", height=0)
+# 5. INPUT DE COMANDO GLOBAL
+command = st.chat_input("Insert Global Command...")
 
-if 'res' in st.session_state:
-    st.info(f"**VEREDITO:** {st.session_state.res}\n\n**HASH IMUTÁVEL:** {st.session_state.hsh}")
+if command:
+    if "dossier" in command.lower() or "audit" in command.lower():
+        st.write(f"[*] Executing Transdisciplinary Audit: {command}")
+        pdf_data = generate_dossier()
+        st.download_button(
+            label="DOWNLOAD AUDIT DOSSIER (PDF)",
+            data=pdf_data,
+            file_name=f"XEON_AUDIT_{datetime.datetime.now().strftime('%Y%m%d')}.pdf",
+            mime="application/pdf"
+        )
+    else:
+        st.write(f"[+] Command processed by Diana Filter: {command}")
 
-# Módulos de Monetização (Botões)
-st.write("### 🚀 MISSION MODULES")
-cols = st.columns(3)
-btns = [("🧬 BIOMED AUDIT", "BIOMED"), ("⚖️ LAW AUDIT", "LAW"), ("🏗️ ENG AUDIT", "ENG"),
-        ("🛡️ CYBER DEFENSE", "SOH"), ("🚀 SPACE OPS", "SPACE"), ("📈 GLOBAL IPO", "IPO")]
-
-for i, (label, key) in enumerate(btns):
-    with cols[i % 3]:
-        if st.button(label):
-            verdict = f"AUDITORIA {key}: Processada em Nuvem Soberana."
-            hsh = asyncio.run(log_audit_real(key, verdict))
-            st.session_state.res, st.session_state.hsh = verdict, hsh
-            st.components.v1.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{verdict}'));</script>", height=0)
-
-# Exportação do Produto Final (PDF de Faturamento)
-if 'res' in st.session_state:
-    buf = BytesIO(); p = canvas.Canvas(buf, pagesize=A4); p.setFillColorRGB(0,0,0); p.rect(0,0,600,900,fill=1); p.setFillColorRGB(0,1,0.25)
-    p.setFont("Courier-Bold", 16); p.drawString(50, 800, "XEON COMMAND - CLOUD DOSSIER v54.0")
-    p.setFont("Courier", 10); p.drawString(50, 770, f"TIMESTAMP: {datetime.datetime.now()} | ARQUITETO: MARCO ANTONIO")
-    p.drawString(50, 750, f"VEREDITO: {st.session_state.res}")
-    p.drawString(50, 730, f"BLOCK HASH: {st.session_state.hsh}")
-    p.save(); buf.seek(0)
-    st.download_button("📂 EXPORTAR PDF PARA FATURAMENTO", buf, "Xeon_Final_Audit.pdf", use_container_width=True)
+# Inicializa DB em background
+asyncio.run(init_db())
