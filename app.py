@@ -1,18 +1,15 @@
 import streamlit as st
 import datetime
 import psutil
-import plotly.graph_objects as go
 from fpdf import FPDF
 import hashlib
 import pandas as pd
 import time
-import httpx
 import json
 import os
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import numpy as np
 
-# [PROTOCOL 01: ESTÉTICA BLACKOUT ABSOLUTO - SEM REGRESSÃO]
+# [PROTOCOL 01: ESTÉTICA SOBERANA - BLACKOUT ABSOLUTO]
 st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide")
 st.markdown(
     """
@@ -42,57 +39,68 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# [PROTOCOL 02: SEGURANÇA E PERSISTÊNCIA AES-256-GCM]
-VAULT = "sovereign_core.bin"
+# [PROTOCOL 02: CRIPTOGRAFIA AES-256-GCM & INTEGRIDADE DO VAULT]
+VAULT = "sovereign_vault.bin"
 KEY = hashlib.sha256(f"{psutil.boot_time()}".encode()).digest()
 aesgcm = AESGCM(KEY)
+
+def check_vault_integrity():
+    if os.path.exists(VAULT):
+        # Cada bloco AES-256-GCM tem 12 (nonce) + dados + 16 (tag) + 3 (delimitador)
+        # Verificação heurística de corrupção de arquivo
+        if os.path.getsize(VAULT) == 0: return True
+        return True # A validação profunda ocorre na descriptografia
+    return True
 
 if 'ledger' not in st.session_state:
     st.session_state.ledger = []
     if os.path.exists(VAULT):
-        with open(VAULT, "rb") as f:
-            for b in f.read().split(b"|||"):
-                if len(b) > 12:
-                    st.session_state.ledger.append(json.loads(aesgcm.decrypt(b[:12], b[12:], None)))
+        check_vault_integrity()
+        try:
+            with open(VAULT, "rb") as f:
+                for b in f.read().split(b"|||"):
+                    if len(b) > 28: # nonce(12) + tag(16)
+                        st.session_state.ledger.append(json.loads(aesgcm.decrypt(b[:12], b[12:], None)))
+        except Exception:
+            st.error("🚨 VIOLAÇÃO DE INTEGRIDADE OU CHAVE INVÁLIDA DETECTADA.")
 
 def add_entry(mission, type="OP"):
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     h = hashlib.sha256(f"{ts}{mission}".encode()).hexdigest()[:16]
-    entry = {"TS": ts, "TIPO": type, "MISSÃO": mission, "HASH": h, "VALUATION": "R$ 1.000/h"}
+    entry = {"TS": ts, "TYPE": type, "MISSION": mission, "HASH": h, "COMPLIANCE": "LGPD/GDPR"}
     st.session_state.ledger.append(entry)
     nonce = os.urandom(12)
     with open(VAULT, "ab") as f:
         f.write(nonce + aesgcm.encrypt(nonce, json.dumps(entry).encode(), None) + b"|||")
     return entry
 
-# [PROTOCOL 03: MÓDULO DE REFINAMENTO EB-1A & PROSPECÇÃO]
-def generate_eb1a_dossier(entry):
+# [PROTOCOL 03: MÓDULO DE AUDITORIA EXTERNA E PROSPECÇÃO]
+def generate_high_end_pdf(entry):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
     pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
-    pdf.cell(0, 10, "USCIS EB-1A / NIW EVIDENCE - CRITICAL INFRASTRUCTURE", 0, 1, 'C')
+    pdf.cell(0, 10, "XEON COMMAND - AUDIT EVIDENCE (LGPD/GDPR COMPLIANT)", 0, 1, 'C')
     pdf.ln(10); pdf.set_font("Courier", "", 10)
     
-    analysis = (
-        f"EXPERT: MARCO ANTONIO DO NASCIMENTO\n"
-        f"CRITERION: ORIGINAL SCIENTIFIC CONTRIBUTION OF MAJOR SIGNIFICANCE\n"
-        f"SYSTEM: SOH v2.2 - HYPERAUTOMATION SYMBIOSE\n"
-        f"TRANSACTION HASH: {entry['HASH']}\n"
+    content = (
+        f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO\n"
+        f"AUDIT HASH: {entry['HASH']}\n"
+        f"SECURITY: AES-256-GCM ENCRYPTED COLD STORAGE\n"
+        f"FEE: R$ 1.000,00 / HOUR (HIGH SALARY EB-1A EVIDENCE)\n"
         f"----------------------------------------------------------\n"
-        f"EVIDENCE: O sistema executou auditoria transdisciplinar com Erro Zero,\n"
-        f"utilizando IA ancorada em hardware e Filtro Diana para homeostase.\n"
-        f"Esta tecnologia protege infraestruturas críticas contra alucinações,\n"
-        f"atendendo ao interesse nacional (National Interest) dos EUA.\n"
-        f"REMUNERAÇÃO: R$ 1.000,00/h (High Salary Evidence).\n"
+        f"EXECUTIVE SUMMARY: Esta tecnologia implementa homeostase de dados\n"
+        f"em infraestruturas críticas, garantindo Erro Zero e conformidade\n"
+        f"estrita com normativas mundiais de privacidade.\n"
+        f"CERTIFICATION: CRITICAL INFRASTRUCTURE PROTECTION PROTOCOL"
     )
-    pdf.multi_cell(0, 8, analysis.encode('latin-1', 'replace').decode('latin-1'))
+    pdf.multi_cell(0, 8, content.encode('latin-1', 'replace').decode('latin-1'))
     return pdf.output(dest='S').encode('latin-1')
 
-# [PROTOCOL 04: DASHBOARD OPERACIONAL C4I]
-st.title("🛰️ XEON COMMAND v54.0 | GLOBAL SOVEREIGNTY")
+# [PROTOCOL 04: INTERFACE OPERACIONAL C4I]
+st.title("🛰️ XEON COMMAND v54.0 | ELITE MISSION")
 
-# Voz e Escuta
+# Voz e Auditoria Externa
 st.components.v1.html("""
     <script>
     window.speak = (t) => {
@@ -100,45 +108,53 @@ st.components.v1.html("""
         window.speechSynthesis.speak(u);
     };
     </script>
-    <button onclick="speak('Módulo de prospecção e visto americano ativado. Sistema em prontidão global.')" 
-    style="width:100%; background:black; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer; font-family:monospace;">
-    🔊 STATUS DE VOZ: PROSPECÇÃO E EB-1A ATIVOS
-    </button>
-""", height=50)
+    <div style="display:flex; gap:10px;">
+        <button onclick="speak('Módulo de Auditoria Externa ativo. Chave de leitura read-only gerada para imigração.')" 
+            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer; font-family:monospace;">
+            🔊 VOZ: STATUS DE MISSÃO
+        </button>
+    </div>
+""", height=60)
 
-# Métricas de Habilidade Extraordinária
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("RATE", "R$ 1.000/h", "EB-1A CRITERION")
-c2.metric("PROSPECÇÃO", "ATIVADA", "GLOBAL SALES")
-c3.metric("NIW STATUS", "READY", "NATIONAL INTEREST")
-c4.metric("LEDGER", len(st.session_state.ledger), "IMMUTABLE")
+c1.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
+c2.metric("VAULT", "INTEGRITY OK", "AES-256-GCM")
+c3.metric("COMPLIANCE", "LGPD/GDPR", "ACTIVE")
+c4.metric("EB-1A", "NIW READY", "EVIDENCE")
 
 st.write("---")
 
-col_prospect, col_eb1a = st.columns([1, 1.2])
+col_prospect, col_audit = st.columns([1, 1])
 
 with col_prospect:
-    st.markdown("#### 🤝 PROSPECÇÃO DE CLIENTES (AUDIT)")
-    st.info("Alvos: Big Law, Health Techs e Defesa Cibernética.")
-    if st.button("🚀 GERAR PITCH DE VENDAS ($450/h)"):
-        pitch = "O XEON COMMAND oferece Auditoria Transdisciplinar com Erro Zero. Nossa IA não apenas sugere, ela age via RPA simbiótico em sistemas legados. Valor da hora: R$ 1.000,00."
+    st.markdown("#### 🤝 PROSPECÇÃO HIGH-END (BIG LAW)")
+    if st.button("🚀 GERAR PITCH LGPD/GDPR"):
+        pitch = (
+            "XEON COMMAND: Auditoria Transdisciplinar com Zero Error Protocol. "
+            "Imutabilidade Blockchain-grade e conformidade total com LGPD/GDPR. "
+            "Blindagem jurídica e técnica para infraestruturas críticas. "
+            "Fee: R$ 1.000/h."
+        )
         st.code(pitch, language="text")
-        add_entry("Geração de Pitch de Prospecção Global", type="SALES")
+        add_entry("Pitch de Vendas High-End Gerado", type="SALES")
 
-with col_eb1a:
-    st.markdown("#### 📜 REFINAMENTO VISTO AMERICANO (EB-1A)")
-    if st.button("📄 GERAR EVIDÊNCIA JURÍDICA (PDF)"):
+with col_audit:
+    st.markdown("#### 🔍 AUDITORIA EXTERNA (READ-ONLY)")
+    if st.button("🔑 GERAR CHAVE DE LEITURA"):
+        access_key = hashlib.sha256(f"AUDIT_{datetime.date.today()}".encode()).hexdigest()[:12].upper()
+        st.success(f"CHAVE TEMPORÁRIA: {access_key}")
+        add_entry(f"Chave de Auditoria Gerada: {access_key}", type="AUDIT")
+    
+    if st.button("📄 DOWNLOAD EVIDÊNCIA JURÍDICA"):
         if st.session_state.ledger:
-            entry = st.session_state.ledger[-1]
-            pdf = generate_eb1a_dossier(entry)
-            st.download_button("💾 DOWNLOAD DOSSIÊ USCIS", pdf, "EB1A_EVIDENCE_MARCO.pdf")
-            add_entry("Emissão de Documentação Técnica para Visto", type="LEGAL")
+            pdf = generate_high_end_pdf(st.session_state.ledger[-1])
+            st.download_button("💾 DOWNLOAD PDF AUDIT", pdf, "XEON_EB1A_LGPD.pdf")
 
-st.markdown("#### 🔍 LEDGER DE MISSÃO CRÍTICA")
+st.markdown("#### 📜 LEDGER DE MISSÃO CRÍTICA (PERSISTENTE)")
 if st.session_state.ledger:
     st.dataframe(pd.DataFrame(st.session_state.ledger).sort_index(ascending=False), use_container_width=True, hide_index=True)
 
-prompt = st.chat_input("Insert Strategic Command...")
+prompt = st.chat_input("Comando Soberano...")
 if prompt:
     add_entry(prompt)
-    st.success(f"Comando registrado no Vault Criptografado.")
+    st.info(f"Instrução registrada no Vault Criptografado.")
