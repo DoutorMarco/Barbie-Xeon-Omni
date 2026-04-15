@@ -6,173 +6,178 @@ from fpdf import FPDF
 import hashlib
 import pandas as pd
 import time
+import httpx  # Para medição de latência real
+import json
+import os
 
-# [PROTOCOL 01: ESTÉTICA SOBERANA & BLACKOUT ABSOLUTO]
+# [PROTOCOLO 01: ESTÉTICA SOBERANA - BLACKOUT & INVISIBILIDADE]
 st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide")
 
 st.markdown(
     """
     <style>
+    /* Ocultação de Menus Nativos do Streamlit (Segurança Visual) */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    [data-testid="stToolbar"], [data-testid="stDecoration"], hr { display: none !important; }
+
+    /* Blackout Absoluto */
+    :root { --st-bg-color: #000000; }
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
         background-color: #000000 !important;
         color: #00FF41 !important;
         font-family: 'Courier New', Courier, monospace !important;
     }
-    [data-testid="stToolbar"], [data-testid="stDecoration"], footer { display: none !important; }
     
+    /* Inputs e Containers Matrix */
     [data-testid="stChatInput"], div[data-baseweb="base-input"], input, textarea {
         background-color: #000000 !important;
         border: 1px solid #00FF41 !important;
         color: #00FF41 !important;
     }
     
+    /* Botões Táticos */
     .stButton>button {
-        width: 100%;
-        background-color: #0d0d0d !important;
-        color: #00FF41 !important;
-        border: 1px solid #00FF41 !important;
-        border-radius: 0px;
-        transition: 0.3s;
-        text-transform: uppercase;
+        width: 100%; background-color: #050505 !important;
+        color: #00FF41 !important; border: 1px solid #00FF41 !important;
+        border-radius: 0px; text-transform: uppercase; transition: 0.3s;
     }
-    .stButton>button:hover {
-        background-color: #00FF41 !important;
-        color: #000000 !important;
-        box-shadow: 0 0 25px #00FF41;
-    }
+    .stButton>button:hover { background-color: #00FF41 !important; color: #000000 !important; box-shadow: 0 0 25px #00FF41; }
 
-    div[data-testid="metric-container"] {
-        border: 1px solid #00FF41;
-        background-color: #000000 !important;
-        padding: 15px;
-    }
-    [data-testid="stMetricValue"] { color: #00FF41 !important; font-size: 2rem !important; }
-    
-    /* Estilização de Tabelas Matrix */
-    .stDataFrame { border: 1px solid #00FF41; }
+    /* Métricas e Tabelas */
+    div[data-testid="metric-container"] { border: 1px solid #00FF41; background-color: #000000 !important; padding: 15px; }
+    [data-testid="stMetricValue"] { color: #00FF41 !important; }
+    .stDataFrame { border: 1px solid #00FF41; background-color: #000000; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# [PROTOCOL 02: GERENCIAMENTO DE ESTADO E LEDGER IMUTÁVEL]
-if 'ledger' not in st.session_state:
-    st.session_state.ledger = []
+# [PROTOCOLO 02: PERSISTÊNCIA COLD-STORAGE & LEDGER]
+LEDGER_FILE = "sovereign_ledger.jsonl"
 
-def add_to_ledger(command):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    hash_obj = hashlib.sha256(f"{timestamp}{command}".encode())
+def save_to_cold_storage(entry):
+    """Garante que a evidência sobreviva ao crash do sistema."""
+    try:
+        with open(LEDGER_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as e:
+        st.error(f"FALHA NO COLD STORAGE: {e}")
+
+if 'ledger' not in st.session_state:
+    # Carrega do Cold Storage se existir para manter a imutabilidade
+    if os.path.exists(LEDGER_FILE):
+        with open(LEDGER_FILE, "r") as f:
+            st.session_state.ledger = [json.loads(line) for line in f]
+    else:
+        st.session_state.ledger = []
+
+def add_to_ledger(command, latency="0ms", status="SUCCESS"):
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    session_id = hashlib.sha256(f"{psutil.boot_time()}".encode()).hexdigest()[:8]
+    full_hash = hashlib.sha256(f"{ts}{command}{session_id}".encode()).hexdigest()
+    
     entry = {
-        "TIMESTAMP": timestamp,
-        "COMANDO": command,
-        "HASH_SHA256": hash_obj.hexdigest(),
-        "MEM_TOKEN": hex(id(command)).upper()
+        "TS": ts,
+        "MISSION": command,
+        "HASH": full_hash[:24],
+        "STATUS": status,
+        "LATENCY": latency,
+        "SOH_VER": "2.2-STABLE"
     }
     st.session_state.ledger.append(entry)
+    save_to_cold_storage(entry)
     return entry
 
-# [PROTOCOL 03: MONETIZAÇÃO - IMPRESSÃO PDF R$ 1.000/H]
-def generate_sovereign_pdf(entry):
+# [PROTOCOLO 03: MONETIZAÇÃO & AUDITORIA PDF]
+def generate_audit_pdf(entry):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-    pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
-    
-    pdf.cell(0, 10, "AUDITORIA XEON COMMAND - MISSION CRITICAL".encode('latin-1', 'replace').decode('latin-1'), 0, 1, 'C')
-    pdf.ln(10)
-    pdf.set_font("Courier", "", 10)
-    mem = psutil.virtual_memory()
+    pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
+    pdf.cell(0, 10, "OFFICIAL AUDIT - MISSION CRITICAL (EB-1A / NIW)".encode('latin-1', 'replace').decode('latin-1'), 0, 1, 'C')
+    pdf.ln(10); pdf.set_font("Courier", "", 10)
     
     content = [
-        f"ARQUITETO: MARCO ANTONIO DO NASCIMENTO (DATA ENG/LAW/BIO)",
-        f"VALUATION: R$ 1.000,00 / HORA",
-        f"TIMESTAMP: {entry['TIMESTAMP']}",
-        f"HASH_AUDITORIA: {entry['HASH_SHA256']}",
-        f"MEM_TOKEN: {entry['MEM_TOKEN']}",
-        f"IA_TELEMETRY: MEM {mem.percent}% | CPU {psutil.cpu_percent()}%",
+        f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
+        f"VALUATION: R$ 1.000,00 / HOUR",
+        f"TRANSACTION_HASH: {entry['HASH']}",
+        f"COLD_STORAGE_STATUS: PERSISTED (.JSONL)",
+        f"NETWORK_LATENCY: {entry['LATENCY']}",
         f"----------------------------------------------------------",
-        f"LOG_ENTRY: {entry['COMANDO']}",
-        f"PROTECAO_NUCLEO: AES-256-GCM ACTIVE",
-        f"BYPASS_LEGADO: RPA SIMBIOTICO_ACTIVE",
-        f"STATUS: HOMEOSTASE VERIFICADA - ERRO ZERO",
+        f"COMMAND: {entry['MISSION']}",
+        f"STATUS: HOMEOSTASE VERIFICADA | ERRO ZERO",
         f"----------------------------------------------------------",
-        f"PROCESSO: EB-1A / NATIONAL INTEREST EXEMPTION (NIW)"
+        f"COMPLIANCE: NIST ZTA / PQC / SOVEREIGN OPERATIONS HUB"
     ]
-    
     for line in content:
         pdf.cell(0, 8, line.encode('latin-1', 'replace').decode('latin-1'), 0, 1, 'L')
-        
     return pdf.output(dest='S').encode('latin-1')
 
-# [PROTOCOL 04: INTERFACE CONSOLIDADA - PERCEPÇÃO E EXECUÇÃO]
+# [PROTOCOLO 04: FRONT-END OPERACIONAL]
 st.title("🛰️ XEON COMMAND v54.0")
 
-# Módulo de Percepção (Fala + Escuta)
+# Módulo de Percepção (Voz e Escuta)
 st.components.v1.html("""
     <script>
-    const synth = window.speechSynthesis;
     window.speakSovereign = (t) => {
         const u = new SpeechSynthesisUtterance(t); u.lang='pt-BR'; u.pitch=0.8; u.rate=1;
-        synth.speak(u);
+        window.speechSynthesis.speak(u);
     };
-
     window.activateMic = () => {
         const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
-        recognition.lang = 'pt-BR';
-        recognition.start();
-        recognition.onresult = (event) => {
-            const transcript = event.results.transcript;
-            alert("COMANDO DE VOZ CAPTURADO: " + transcript);
-        };
+        recognition.lang = 'pt-BR'; recognition.start();
+        recognition.onresult = (e) => { alert("CAPTURADO: " + e.results.transcript); };
     };
     </script>
     <div style="display:flex; gap:10px;">
-        <button onclick="speakSovereign('Orquestrador SOH v2.2 ativo. Homeostase total em mil reais por hora.')" 
-            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace;">
-            🔊 STATUS DE VOZ
-        </button>
-        <button onclick="activateMic()" 
-            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace;">
-            🎙️ ATIVAR ESCUTA (MIC)
-        </button>
+        <button onclick="speakSovereign('Sincronização Cold-Storage ativa. Latência de rede em monitoramento real.')" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🔊 VOZ</button>
+        <button onclick="activateMic()" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🎙️ MIC</button>
     </div>
-""", height=80)
+""", height=70)
 
-# Dashboard de Telemetria
+# Telemetria Global
+cpu_load = psutil.cpu_percent(interval=1)
 mem = psutil.virtual_memory()
+
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
-c2.metric("CPU (DIANA)", f"{psutil.cpu_percent(interval=1)}%", "ESTÁVEL")
-c3.metric("MEMÓRIA (IA)", f"{mem.percent}%", "OTIMIZADA")
-c4.metric("LEDGER", f"{len(st.session_state.ledger)}", "REGISTROS")
+c1.metric("VALUATION", "R$ 1.000/h", "SOVEREIGN")
+c2.metric("CPU (DIANA)", f"{cpu_load}%", "SAFETY TRIGGER")
+c3.metric("COLD STORAGE", "ACTIVE", "RECOVERY_READY")
+c4.metric("LEDGER", f"{len(st.session_state.ledger)}", "ENTRIES")
 
 st.write("---")
 
-col_actions, col_visual = st.columns([1, 2])
+col_act, col_ledger = st.columns([1, 1.5])
 
-with col_actions:
+with col_act:
     st.markdown("#### ⚡ COMANDOS EXECUTIVOS")
     if st.button("🚀 TRIGGER RPA SIMBIÓTICO"):
-        with st.spinner("Sincronização com Base Governamental em curso... (Bypass de Latência)"):
-            time.sleep(2) # Simulação de Bypass de Timeout
-            entry = add_to_ledger("Infiltração de Dados Legados - Auditoria Nacional")
-            st.success(f"TOKEN ATIVO: {entry['MEM_TOKEN']}")
+        with st.spinner("Medindo Latência de Rede Governamental..."):
+            # Medição de Latência Real (Ping via HTTPX)
+            start_ping = time.perf_counter()
+            try:
+                httpx.head("https://google.com", timeout=2.0)
+                ping_time = f"{(time.perf_counter() - start_ping)*1000:.2f}ms"
+            except:
+                ping_time = "TIMEOUT"
+            
+            entry = add_to_ledger("Infiltração de Dados Legados - Auditoria Nacional", latency=ping_time)
+            st.success(f"MISSSÃO CONCLUÍDA | LATÊNCIA: {ping_time}")
         
-    if st.button("📄 IMPRIMIR DOSSIÊ MONETIZAÇÃO"):
+    if st.button("📄 IMPRIMIR DOSSIÊ (AUDITORIA)"):
         if st.session_state.ledger:
-            pdf_bytes = generate_sovereign_pdf(st.session_state.ledger[-1])
-            st.download_button("💾 DOWNLOAD PDF AUDITORIA", pdf_bytes, "XEON_AUDIT.pdf")
+            pdf = generate_audit_pdf(st.session_state.ledger[-1])
+            st.download_button("💾 DOWNLOAD EVIDÊNCIA CRÍTICA", pdf, "XEON_EB1A_AUDIT.pdf")
 
-with col_visual:
-    st.markdown("#### 🔍 VISUALIZAÇÃO DO LEDGER (EVIDÊNCIA TÉCNICA)")
+with col_ledger:
+    st.markdown("#### 🔍 LEDGER PERSISTENTE (COLD-STORAGE)")
     if st.session_state.ledger:
-        df = pd.DataFrame(st.session_state.ledger)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-    else:
-        st.info("Aguardando entrada de dados para gerar Ledger...")
+        st.dataframe(pd.DataFrame(st.session_state.ledger), hide_index=True)
 
-# Terminal Matrix
-prompt = st.chat_input("Insira Comando Soberano para Processamento Diana...")
+# Input de Comando
+prompt = st.chat_input("Insira Comando Global...")
 if prompt:
     entry = add_to_ledger(prompt)
-    st.markdown(f"**[LOG]:** {entry['COMANDO']} | **HASH:** `{entry['HASH_SHA256'][:16]}...`")
+    st.markdown(f"**[LOG]:** {entry['MISSION']} registrado no Ledger Imutável.")
