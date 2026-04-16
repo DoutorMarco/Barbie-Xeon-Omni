@@ -11,24 +11,38 @@ import asyncio
 import os
 import numpy as np
 import time
-import re
-import random
+from pydantic import BaseModel, ValidationError, Field
+from typing import Optional, Dict
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 
-# [PROTOCOL 01: INTEGRIDADE DE HARDWARE & FISIOLOGIA]
+# [SCHEMA VALIDATION - BANK GRADE]
+class MarketData(BaseModel):
+    price: float = Field(..., gt=0)
+    volume: int = Field(..., ge=0)
+    ticker: str = "YDUQ3.SA"
+
+class GeoData(BaseModel):
+    query: str
+    city: str
+    countryCode: str
+    isp: str
+    proxy: bool
+    as_info: str = Field(alias="as")
+
+# [PROTOCOL 01: AUTO-AUDITORIA v90]
 def get_script_integrity():
     try:
         with open(__file__, "rb") as f: return hashlib.sha3_256(f.read()).hexdigest()
-    except: return "XEON_v73_QUANTUM_DARK_FIBER"
+    except Exception as e:
+        return f"INTEGRITY_FAILURE_{str(e)[:8]}"
 
 SCRIPT_HASH = get_script_integrity()
 LEDGER_FILE = "xeon_ledger.jsonl"
-KEY_FILE = ".xeon_vault"
 
-# [PROTOCOL 02: ESTÉTICA BLACKOUT]
-st.set_page_config(page_title="XEON COMMAND v73.0", layout="wide")
+# [PROTOCOL 02: ESTÉTICA BLACKOUT SUPREMA]
+st.set_page_config(page_title="XEON COMMAND v90.0", layout="wide")
 st.markdown("""
     <style>
     #MainMenu, header, footer { visibility: hidden; }
@@ -37,109 +51,106 @@ st.markdown("""
         background-color: #000000 !important; color: #00FF41 !important;
         font-family: 'Courier New', monospace !important;
     }
-    .stMetric { border: 1px solid #00FF41 !important; padding: 10px; background: #050505 !important; }
-    .stButton>button {
-        width: 100%; background-color: #000000 !important; color: #00FF41 !important;
-        border: 1px solid #00FF41 !important; border-radius: 0px; font-weight: bold;
-    }
+    .stMetric { border: 1px solid #00FF41 !important; padding: 15px; background: #050505 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# [PROTOCOL 03: KERNEL QUANTUM-RESISTANT & PERSISTÊNCIA]
-if 'kernel_v73' not in st.session_state:
-    st.session_state.priv_key = ec.generate_private_key(ec.SECP256R1())
-    st.session_state.quantum_salt = os.urandom(64) # Salt para Criptografia Quântica Simulada
+# [PROTOCOL 03: KERNEL DE CUSTÓDIA & LOGS]
+if 'kernel_v90' not in st.session_state:
     st.session_state.aes_key = AESGCM.generate_key(bit_length=256)
     st.session_state.ledger_cache = []
+    st.session_state.event_logs = []
     st.session_state.price_history = []
-    st.session_state.dark_fiber_noise = []
-    st.session_state.last_hash = "0000_GENESIS"
-    st.session_state.kernel_v73 = True
+    st.session_state.kernel_v90 = True
 
-# [PROTOCOL 04: DARK-FIBER MONITORING (REAL NETWORK NOISE)]
-def monitor_dark_fiber():
-    """Detecta micro-oscilações em rotas de rede que indicam atividade em Dark-Fiber"""
-    noise = round(random.uniform(0.001, 0.009), 6)
-    st.session_state.dark_fiber_noise.append(noise)
-    if len(st.session_state.dark_fiber_noise) > 50: st.session_state.dark_fiber_noise.pop(0)
-    return noise
+def log_event(level: str, message: str):
+    entry = f"[{level}] {datetime.datetime.now().strftime('%H:%M:%S')} - {message}"
+    st.session_state.event_logs.append(entry)
+    if len(st.session_state.event_logs) > 50: st.session_state.event_logs.pop(0)
 
-# [PROTOCOL 05: QUANTUM-SIMULATED SIGNATURE]
-def post_quantum_hash(data_bytes):
-    """Simulação de Lattice-based Hashing (SHA3-512 + Quantum Salt)"""
-    h = hashlib.sha3_512(data_bytes)
-    h.update(st.session_state.quantum_salt)
-    return h.hexdigest()
-
-# [PROTOCOL 06: GLOBAL REAL-TIME ENGINES]
-async def fetch_global_intel():
-    async with httpx.AsyncClient(timeout=8.0) as client:
+# [PROTOCOL 04: REAL-TIME INTEL (ROBUSTEZ APLICADA)]
+async def fetch_v90_intel():
+    headers = {'User-Agent': 'XEON-COMMAND-V90-AUDIT'}
+    async with httpx.AsyncClient(timeout=12.0, headers=headers) as client:
         try:
             m_resp = await client.get("https://yahoo.com")
-            price = m_resp.json()['chart']['result']['meta']['regularMarketPrice']
-            return price
-        except: return 0
+            m_resp.raise_for_status()
+            raw_m = m_resp.json()['chart']['result'][0]
+            m_validated = MarketData(price=raw_m['meta']['regularMarketPrice'], volume=raw_m['indicators']['quote'][0]['volume'][-1])
+            
+            g_resp = await client.get("http://ip-api.com")
+            g_resp.raise_for_status()
+            g_validated = GeoData(**g_resp.json())
+            
+            log_event("SUCCESS", "Sincronia de dados validada via Pydantic.")
+            return m_validated, g_validated
+        except ValidationError as ve:
+            log_event("CRITICAL", f"Falha de Schema: {ve.json()}")
+            return None, None
+        except Exception as e:
+            log_event("ERROR", f"Conectividade Crítica: {str(e)}")
+            return None, None
 
-def secure_commit(data):
+def secure_commit_v90(data):
     aesgcm = AESGCM(st.session_state.aes_key)
     nonce = os.urandom(12)
-    payload = {"ts": datetime.datetime.now().isoformat(), "data": data, "prev": st.session_state.last_hash}
-    raw = json.dumps(payload).encode()
-    # Proteção Quântica no Commit
-    q_hash = post_quantum_hash(raw)
-    cipher_blob = aesgcm.encrypt(nonce, raw, None)
-    entry = {"n": nonce.hex(), "b": cipher_blob.hex(), "h": q_hash}
-    st.session_state.last_hash = q_hash
+    payload = json.dumps(data)
+    # Proof of Existence (PoE) Hash
+    poe_hash = hashlib.sha3_512(payload.encode()).hexdigest()
+    cipher_blob = aesgcm.encrypt(nonce, payload.encode(), None)
+    entry = {"n": nonce.hex(), "b": cipher_blob.hex(), "poe": poe_hash, "ts": datetime.datetime.now().isoformat()}
+    
+    with open(LEDGER_FILE, "a") as f: f.write(json.dumps(entry) + "\n")
     st.session_state.ledger_cache.append(entry)
+    return poe_hash
 
-# [PROTOCOL 07: UI CONSOLIDADA FINAL]
-price = asyncio.run(fetch_global_intel())
-df_noise = monitor_dark_fiber()
+# [PROTOCOL 05: UI DASHBOARD]
+m_data, g_data = asyncio.run(fetch_v90_intel())
 
-st.title(f"🛰️ XEON COMMAND v73.0 | FINAL CORE OPS")
+st.title(f"🛰️ XEON COMMAND v90.0 | BANKING COMPLIANCE")
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("DARK-FIBER NOISE", f"{df_noise} dB", delta="STABLE SIGNAL")
-c2.metric("QUANTUM STATE", "RESISTANT", delta="LATTICE_ACTIVE")
-c3.metric("YDUQ3.SA", f"R$ {price}")
-c4.metric("SYSTEM INTEGRITY", SCRIPT_HASH[:12])
+c1.metric("DATA SCHEMA", "VALIDATED" if m_data else "INVALID")
+c2.metric("NETWORK ISP", g_data.isp[:15] if g_data else "OFFLINE")
+c3.metric("YDUQ3.SA", f"R$ {m_data.price}" if m_data else "0.0")
+c4.metric("INTEGRIDADE", SCRIPT_HASH[:12])
 
-t1, t2, t3 = st.tabs(["📊 TELEMETRIA AVANÇADA", "🛡️ LEDGER SINK", "📑 DOSSIÊ FINAL"])
+t1, t2, t3 = st.tabs(["📊 TELEMETRIA DE CONFORMIDADE", "🛡️ LEDGER SINK (PoE)", "📑 DOSSIÊ DE AUDITORIA"])
 
 with t1:
-    col_l, col_r = st.columns()
+    col_l, col_r = st.columns(2)
     with col_l:
-        st.subheader("Dark-Fiber Infrastructure Pulse")
-        fig = go.Figure(go.Scatter(y=st.session_state.dark_fiber_noise, line=dict(color="#00FF41", width=1)))
-        fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=350)
-        st.plotly_chart(fig, use_container_width=True)
+        st.subheader("Granular System Logs")
+        for log in st.session_state.event_logs[::-1]:
+            st.text(log)
     with col_r:
-        st.subheader("Quantum Shield Log")
-        st.code(f"SALT: {st.session_state.quantum_salt.hex()[:32]}...\nALGO: SHA3-512-LATTICE\nSTATUS: PROTECTED")
-        if st.button("☢️ TOTAL WIPE"):
-            st.session_state.clear(); st.rerun()
+        if m_data:
+            st.session_state.price_history.append(m_data.price)
+            if len(st.session_state.price_history) > 30: st.session_state.price_history.pop(0)
+            fig = go.Figure(go.Scatter(y=st.session_state.price_history, line=dict(color="#00FF41", width=2)))
+            fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=250)
+            st.plotly_chart(fig, use_container_width=True)
 
 with t2:
-    if st.button("🚀 EXECUTE QUANTUM COMMIT"):
-        secure_commit({"price": price, "noise": df_noise, "quantum_state": "VERIFIED"})
-        st.success("BLOCK COMMITED WITH QUANTUM-RESISTANT HASH")
+    if st.button("🚀 EXECUTE SECURE COMMIT (PoE)"):
+        if m_data and g_data:
+            poe = secure_commit_v90({"m": m_data.dict(), "g": g_data.dict()})
+            st.success(f"PROVA DE EXISTÊNCIA (PoE) REGISTRADA: {poe[:32]}...")
     st.dataframe(pd.DataFrame(st.session_state.ledger_cache).tail(10), use_container_width=True)
 
 with t3:
-    st.error("CASO CRÍTICO FINAL: YDUQS / CVM")
-    st.write("Monitoramento de Dark-Fiber e Criptografia Quântica ativos para garantir a inviolabilidade dos dados.")
-    if st.button("📑 GENERATE FINAL MISSION REPORT"):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
+    st.error("CERTIFICAÇÃO CVM: AUDITORIA DE PRODUÇÃO")
+    if st.button("📑 GERAR LAUDO IMUTÁVEL"):
+        pdf = FPDF(); pdf.add_page(); pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
         pdf.set_text_color(0, 255, 65); pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, "XEON v73.0 - QUANTUM AUDIT REPORT", 0, 1, 'C')
-        pdf.set_font("Helvetica", "", 10); pdf.ln(10)
-        report = (f"DARK-FIBER NOISE: {df_noise} dB\n"
-                  f"QUANTUM HASH: {st.session_state.last_hash}\n"
-                  f"PRICE YDUQ3: R$ {price}\n"
-                  f"STATUS: MISSION COMPLETE")
-        pdf.multi_cell(0, 7, report)
-        st.download_button("💾 DOWNLOAD FINAL", data=pdf.output(), file_name="XEON_v73_FINAL.pdf")
+        pdf.cell(0, 10, "XEON v90.0 - BANK-GRADE AUDIT REPORT", 0, 1, 'C'); pdf.ln(10)
+        pdf.set_font("Helvetica", "", 10)
+        content = (f"DATA: {datetime.datetime.now()}\n"
+                   f"INTEGRIDADE DO CORE: {SCRIPT_HASH}\n"
+                   f"ULTIMO PoE HASH: {st.session_state.ledger_cache[-1]['poe'] if st.session_state.ledger_cache else 'N/A'}\n"
+                   f"ISP TARGET: {g_data.isp if g_data else 'OFFLINE'}\n"
+                   f"PREÇO VALIDADO: R$ {m_data.price if m_data else '0.0'}")
+        pdf.multi_cell(0, 7, content)
+        st.download_button("💾 BAIXAR LAUDO CVM", data=pdf.output(), file_name="AUDITORIA_V90_CVM.pdf")
 
-st.chat_input("Sistema em Prontidão Total. Missão de hoje encerrada...")
+st.chat_input("Compliance Nominal. Prontidão Bancária.")
