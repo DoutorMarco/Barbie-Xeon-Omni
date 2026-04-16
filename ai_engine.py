@@ -9,49 +9,43 @@ import (
 	"time"
 )
 
-// Estrutura de Dados Soberana
-type XEONStatus struct {
-	Timestamp   string  `json:"timestamp"`
-	IP_Publico  string  `json:"ip_publico"`
-	Dolar_Hoje  float64 `json:"dolar_hoje"`
-	Receita     float64 `json:"receita"`
-	Audit_Hash  string  `json:"audit_hash"`
-	Versao      string  `json:"versao"`
+type XEONIntel struct {
+	Timestamp   string  `json:"ts"`
+	IP_Node     string  `json:"ip"`
+	Cambio      float64 `json:"usd"`
+	Receita     float64 `json:"val"`
+	Audit_Hash  string  `json:"hash"`
+	Versao      string  `json:"ver"`
 }
 
 func main() {
 	const VALOR_HORA = 1000.00
-	versao := "v101.8 | GO-SOVEREIGN"
+	versao := "v101.9 | GO-KINETIC"
 
-	// 1. Conexão com API de IP (Realidade Mundial)
+	// 1. Infiltração em APIs Mundiais
 	respIP, _ := http.Get("https://ipify.org")
 	ip, _ := ioutil.ReadAll(respIP.Body)
-
-	// 2. Conexão com API de Câmbio (Tempo Real)
 	respUSD, _ := http.Get("https://exchangerate-api.com")
 	var dataUSD map[string]interface{}
 	json.NewDecoder(respUSD.Body).Decode(&dataUSD)
-	dolar := dataUSD["rates"].(map[string]interface{})["BRL"].(float64)
+	usd := dataUSD["rates"].(map[string]interface{})["BRL"].(float64)
 
-	// 3. Cálculo de Monetização (Auditada)
-	// Simulando 1h de operação para o relatório imediato
-	receita := 1.0 * VALOR_HORA 
+	// 2. Monetização Auditada (Exemplo: 1.5h de sessão)
+	receita := 1.5 * VALOR_HORA 
 
-	// 4. Geração de Hash de Auditoria (SHA-256)
+	// 3. Assinatura Digital Imutável
 	snapshot := fmt.Sprintf("%s-%s-%f", ip, versao, receita)
 	hash := sha256.Sum256([]byte(snapshot))
-	auditHash := fmt.Sprintf("%x", hash)
 
-	// 5. Consolidação para o Front-end (JSON)
-	status := XEONStatus{
+	// 4. Output de Dados Puros
+	intel := XEONIntel{
 		Timestamp:  time.Now().Format(time.RFC3339),
-		IP_Publico: string(ip),
-		Dolar_Hoje: dolar,
+		IP_Node:    string(ip),
+		Cambio:     usd,
 		Receita:    receita,
-		Audit_Hash: auditHash,
+		Audit_Hash: fmt.Sprintf("%x", hash),
 		Versao:     versao,
 	}
-
-	output, _ := json.MarshalIndent(status, "", "  ")
+	output, _ := json.Marshal(intel)
 	fmt.Println(string(output))
 }
