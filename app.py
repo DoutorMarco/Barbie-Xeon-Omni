@@ -21,12 +21,14 @@ def get_script_integrity():
 
 SCRIPT_HASH = get_script_integrity()
 
-# [PROTOCOL 02: ESTÉTICA SOBERANA - BLACKOUT TOTAL & SCI-GREEN]
+# [PROTOCOL 02: ESTÉTICA SOBERANA - BLACKOUT TOTAL]
 st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide")
+
+# Correção: f-string exige {{ }} para CSS literal
 st.markdown(
     f"""
     <style>
-    #MainMenu, header, footer {{visibility: hidden;}}
+    #MainMenu, header, footer {{ visibility: hidden; }}
     [data-testid="stToolbar"], [data-testid="stDecoration"], hr {{ display: none !important; }}
     :root {{ --st-bg-color: #000000; }}
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {{
@@ -40,7 +42,7 @@ st.markdown(
         width: 100%; background-color: #000000 !important; color: #00FF41 !important;
         border: 1px solid #00FF41 !important; border-radius: 0px; text-transform: uppercase;
         font-weight: bold; letter-spacing: 2px; transition: 0.4s; height: 3.5em;
-    }
+    }}
     .stButton>button:hover {{ background-color: #00FF41 !important; color: #000000 !important; box-shadow: 0 0 50px #00FF41; }}
     div[data-testid="metric-container"] {{ border: 1px solid #00FF41; background-color: #050505 !important; padding: 20px; }}
     [data-testid="stMetricValue"] {{ color: #00FF41 !important; }}
@@ -60,6 +62,7 @@ def sign_payload(data):
     return signature.hex()
 
 def perception_module():
+    # Correção: {{ }} para JS literal dentro de f-string
     st.components.v1.html(f"""
     <script>
     const synth = window.speechSynthesis;
@@ -68,7 +71,7 @@ def perception_module():
         synth.speak(u);
     }};
     window.activateMic = () => {{
-        const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        const rec = new (window.webkitSpeechRecognition || window.webkitSpeechRecognition)();
         rec.lang = 'pt-BR'; rec.start();
         rec.onresult = (e) => {{ 
             const transcript = e.results.transcript;
@@ -78,7 +81,7 @@ def perception_module():
     }};
     </script>
     <div style="display:flex; gap:10px;">
-        <button onclick="speak('Interface soberana restaurada. Percepção multilingue e telemetria em homeostase.')" 
+        <button onclick="speak('Homeostase restaurada. Erro de sintaxe expurgado. Sistema nominal.')" 
             style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:15px; cursor:pointer; font-family:monospace; font-weight:bold; text-transform:uppercase;">
             🔊 STATUS DE VOZ
         </button>
@@ -90,12 +93,11 @@ def perception_module():
     """, height=80)
 
 # [PROTOCOL 04: DASHBOARD OPERACIONAL C4I]
-st.title("🛰️ XEON COMMAND v54.0 | SOVEREIGN OPERATIONS")
+st.title("🛰️ XEON COMMAND v54.0 | RECOVERY_READY")
 perception_module()
 
-# Métricas de Elite
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("RATE", "R$ 1.000/h", "EB-1A")
+c1.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
 c2.metric("SHA-3", SCRIPT_HASH[:8], "VERIFIED")
 c3.metric("STATE", "RAM-ONLY", "VOLATILE")
 c4.metric("VAULT", "AUTHENTIC", "ECDSA_P256")
@@ -105,7 +107,6 @@ st.write("---")
 col_left, col_right = st.columns([1, 1.5])
 
 with col_left:
-    # Telemetria Circular (Gauge)
     cpu_val = psutil.cpu_percent()
     fig = go.Figure(go.Indicator(
         mode = "gauge+number", value = cpu_val,
@@ -130,7 +131,7 @@ with col_left:
         st.rerun()
 
 with col_right:
-    st.markdown("#### 🔍 LEDGER DE REALIDADE (IMMUTABLE)")
+    st.markdown("#### 🔍 LEDGER DE REALIDADE")
     if st.session_state.ledger:
         st.dataframe(pd.DataFrame(st.session_state.ledger).sort_index(ascending=False), use_container_width=True, hide_index=True)
     
@@ -143,12 +144,10 @@ with col_right:
             pdf.set_font("Courier", "", 8); pdf.ln(10)
             body = (f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO\nRATE: R$ 1.000,00/H\n"
                     f"INTEGRITY_HASH (SHA-3): {SCRIPT_HASH}\n"
-                    f"DIGITAL_SIGNATURE (ECDSA): {last['SIG']}\n"
-                    f"STATUS: VERIFIED BY SOH v2.2")
+                    f"DIGITAL_SIGNATURE: {last['SIG']}\n")
             pdf.multi_cell(0, 5, body.encode('latin-1', 'replace').decode('latin-1'))
             st.download_button("💾 DOWNLOAD DOSSIÊ", pdf.output(dest='S').encode('latin-1'), "XEON_AUDIT.pdf")
 
-# Terminal Matrix
 prompt = st.chat_input("Insira Comando Soberano...")
 if prompt:
     st.info(f"Filtro Diana: {prompt} | Processando em RAM Segura.")
