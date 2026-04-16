@@ -10,3 +10,5 @@ pandas
 pydantic
 scikit-learn
 aiosqlite
+pyvis
+biopython
