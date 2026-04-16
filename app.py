@@ -24,7 +24,6 @@ SCRIPT_HASH = get_script_integrity()
 # [PROTOCOL 02: ESTÉTICA SOBERANA - BLACKOUT TOTAL]
 st.set_page_config(page_title="XEON COMMAND v54.0", layout="wide")
 
-# Correção: f-string exige {{ }} para CSS literal
 st.markdown(
     f"""
     <style>
@@ -52,7 +51,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# [PROTOCOL 03: GESTÃO DE ESTADO E PERCEPÇÃO]
+# [PROTOCOL 03: GESTÃO DE ESTADO E PERCEPÇÃO NEURAL]
 if 'ledger' not in st.session_state:
     st.session_state.ledger = []
     st.session_state.priv_key = ec.generate_private_key(ec.SECP256R1())
@@ -62,7 +61,6 @@ def sign_payload(data):
     return signature.hex()
 
 def perception_module():
-    # Correção: {{ }} para JS literal dentro de f-string
     st.components.v1.html(f"""
     <script>
     const synth = window.speechSynthesis;
@@ -81,21 +79,22 @@ def perception_module():
     }};
     </script>
     <div style="display:flex; gap:10px;">
-        <button onclick="speak('Homeostase restaurada. Erro de sintaxe expurgado. Sistema nominal.')" 
+        <button onclick="speak('Gráfico circular operacional ativo. Homeostase de dados em realidade pura.')" 
             style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:15px; cursor:pointer; font-family:monospace; font-weight:bold; text-transform:uppercase;">
             🔊 STATUS DE VOZ
         </button>
         <button onclick="activateMic()" 
             style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:15px; cursor:pointer; font-family:monospace; font-weight:bold; text-transform:uppercase;">
-            🎙️ ATIVAR ESCUTA (MIC)
+            🎙️ ESCUTA MULTILINGUE
         </button>
     </div>
     """, height=80)
 
 # [PROTOCOL 04: DASHBOARD OPERACIONAL C4I]
-st.title("🛰️ XEON COMMAND v54.0 | RECOVERY_READY")
+st.title("🛰️ XEON COMMAND v54.0 | OPERATIONAL_CORE")
 perception_module()
 
+# Métricas de Elite
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
 c2.metric("SHA-3", SCRIPT_HASH[:8], "VERIFIED")
@@ -107,21 +106,33 @@ st.write("---")
 col_left, col_right = st.columns([1, 1.5])
 
 with col_left:
-    cpu_val = psutil.cpu_percent()
+    # Gráfico Circular Operacional (Gauge)
+    cpu_load = psutil.cpu_percent()
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number", value = cpu_val,
-        title = {'text': "CPU LOAD (DIANA)", 'font': {'color': "#00FF41", 'size': 14}},
-        gauge = {'axis': {'range': [None, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black", 'bordercolor': "#00FF41"}
+        mode = "gauge+number", value = cpu_load,
+        title = {{'text': "CPU LOAD (DIANA_FILTER)", 'font': {{'color': "#00FF41", 'size': 14}}}},
+        gauge = {{
+            'axis': {{'range': [None, 100], 'tickcolor': "#00FF41"}},
+            'bar': {{'color': "#00FF41"}},
+            'bgcolor': "black",
+            'bordercolor': "#00FF41",
+            'borderwidth': 2,
+            'steps': [
+                {{'range': [0, 70], 'color': 'rgba(0, 255, 65, 0.1)'}},
+                {{'range': [70, 90], 'color': 'rgba(0, 255, 65, 0.3)'}},
+                {{'range': [90, 100], 'color': 'rgba(255, 0, 0, 0.5)'}}
+            ]
+        }}
     ))
-    fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=250, margin=dict(l=20,r=20,t=50,b=20))
+    fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={{'color': "#00FF41"}}, height=280, margin=dict(l=20,r=20,t=50,b=20))
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("#### ⚡ COMANDOS EXECUTIVOS")
     if st.button("🚀 EXECUTAR MISSÃO E ASSINAR"):
         ts = datetime.datetime.now().strftime("%H:%M:%S")
-        sig = sign_payload(f"MISSION_{ts}_{SCRIPT_HASH}")
-        st.session_state.ledger.append({"TS": ts, "MISSION": "Auditoria de Infraestrutura", "SIG": sig})
-        st.success(f"MISSÃO ASSINADA: {sig[:16]}...")
+        sig = sign_payload(f"MISSION_{{ts}}_{{SCRIPT_HASH}}")
+        st.session_state.ledger.append({{"TS": ts, "MISSION": "Auditoria de Infraestrutura", "SIG": sig}})
+        st.success(f"MISSÃO ASSINADA: {{sig[:16]}}...")
         
     if st.button("☢️ PURGAR SESSÃO"):
         st.session_state.clear()
@@ -131,7 +142,7 @@ with col_left:
         st.rerun()
 
 with col_right:
-    st.markdown("#### 🔍 LEDGER DE REALIDADE")
+    st.markdown("#### 🔍 LEDGER DE REALIDADE (IMMUTABLE)")
     if st.session_state.ledger:
         st.dataframe(pd.DataFrame(st.session_state.ledger).sort_index(ascending=False), use_container_width=True, hide_index=True)
     
@@ -143,11 +154,13 @@ with col_right:
             pdf.cell(0, 10, "XEON COMMAND - AUDIT EVIDENCE", 0, 1, 'C')
             pdf.set_font("Courier", "", 8); pdf.ln(10)
             body = (f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO\nRATE: R$ 1.000,00/H\n"
-                    f"INTEGRITY_HASH (SHA-3): {SCRIPT_HASH}\n"
-                    f"DIGITAL_SIGNATURE: {last['SIG']}\n")
+                    f"INTEGRITY_HASH (SHA-3): {{SCRIPT_HASH}}\n"
+                    f"DIGITAL_SIGNATURE: {{last['SIG']}}\n"
+                    f"STORAGE: VOLATILE RAM (ZERO-TRACE)")
             pdf.multi_cell(0, 5, body.encode('latin-1', 'replace').decode('latin-1'))
-            st.download_button("💾 DOWNLOAD DOSSIÊ", pdf.output(dest='S').encode('latin-1'), "XEON_AUDIT.pdf")
+            st.download_button("💾 DOWNLOAD DOSSIÊ", pdf.output(dest='S').encode('latin-1'), "XEON_EB1A.pdf")
 
-prompt = st.chat_input("Insira Comando Soberano...")
+# Terminal Matrix
+prompt = st.chat_input("Insira Comando Soberano para Realidade Pura...")
 if prompt:
-    st.info(f"Filtro Diana: {prompt} | Processando em RAM Segura.")
+    st.info(f"Filtro Diana: {{prompt}} | Processando em RAM Segura.")
