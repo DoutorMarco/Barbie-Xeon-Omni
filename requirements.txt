@@ -3,10 +3,10 @@ numpy
 psutil
 plotly
 scipy
-reportlab
 httpx
-scikit-learn
-aiosqlite
-fpdf
+fpdf2
 cryptography
 pandas
+pydantic
+scikit-learn
+aiosqlite
