@@ -1,19 +1,16 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"runtime"
 	"time"
 )
 
 func main() {
-	// Pega dados do hardware sem alucinação
+	// Captura dados reais do hardware
 	cores := runtime.NumCPU()
-	
-	// Gera a Assinatura de Missão Crítica
-	data := fmt.Sprintf("XEON-MARCO-%d-%d", cores, time.Now().Unix())
-	hash := sha256.Sum256([]byte(data))
+	timestamp := time.Now().Format("15:04:05")
 
-	fmt.Printf("CORE_ATIVO: %d | HASH_SOBERANO: %x\n", cores, hash[:16])
+	// Retorna uma linha simples que o Python consegue ler
+	fmt.Printf("CORE_ATIVO: %d | STATUS: SOBERANO | UTC: %s", cores, timestamp)
 }
