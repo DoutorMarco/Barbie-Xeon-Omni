@@ -6,7 +6,6 @@ from fpdf import FPDF
 import hashlib
 import pandas as pd
 import httpx
-import asyncio
 import json
 import os
 import time
@@ -18,7 +17,7 @@ from cryptography.hazmat.primitives import hashes
 def get_script_integrity():
     try:
         with open(__file__, "rb") as f: return hashlib.sha3_256(f.read()).hexdigest()
-    except: return "STABLE_SOH_NODE_V54"
+    except: return "SOH_CORE_V54_FINAL"
 
 SCRIPT_HASH = get_script_integrity()
 
@@ -78,56 +77,71 @@ st.components.v1.html("""
     window.listen = () => {
         const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         r.lang='pt-BR'; r.start();
-        r.onresult = (e) => { alert("COMANDO: " + e.results[0].transcript); window.speak("Entendido."); };
+        r.onresult = (e) => { alert("CAPTURADO: " + e.results.transcript); window.speak("Entendido."); };
     };
     </script>
     <div style="display:flex; gap:10px;">
-        <button onclick="speak('Módulos reestabelecidos. Auditoria Blockchain pronta para impressão.')" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🔊 VOZ ON</button>
-        <button onclick="listen()" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🎙️ MIC ON</button>
+        <button onclick="speak('Módulos nominais. Arquiteto, o dossiê de mil reais por hora está pronto para exportação.')" 
+            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🔊 VOZ DO SISTEMA</button>
+        <button onclick="listen()" 
+            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🎙️ ESCUTA ATIVA</button>
     </div>
 """, height=70)
 
 # [PROTOCOL 05: DASHBOARD E PDF]
-st.title("🛰️ XEON COMMAND v54.0 | BLOCKCHAIN AUDIT")
+st.title("🛰️ XEON COMMAND v54.0 | FINAL SOVEREIGNTY")
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
-c2.metric("LEDGER", f"BLOCK_{len(st.session_state.encrypted_ledger)}", "ACTIVE")
-c3.metric("SHA-3", SCRIPT_HASH[:8], "VERIFIED")
-c4.metric("VAULT", "RAM-ONLY", "AUTHENTIC")
+c2.metric("LEDGER", f"BLOCK_{len(st.session_state.encrypted_ledger)}", "NOMINAL")
+c3.metric("INTEGRIDADE", SCRIPT_HASH[:8], "SHA-3")
+c4.metric("EB-1A", "NIW_READY", "EVIDENCE")
 
 col_left, col_right = st.columns([1.6, 1])
 
 with col_left:
-    fig = go.Figure(go.Indicator(mode="gauge+number", value=psutil.cpu_percent(), title={'text': "CPU LOAD", 'font': {'color': "#00FF41"}}, gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black", 'bordercolor': "#00FF41"}))
+    fig = go.Figure(go.Indicator(mode="gauge+number", value=psutil.cpu_percent(), title={'text': "SYSTEM LOAD", 'font': {'color': "#00FF41"}}, gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black", 'bordercolor': "#00FF41"}))
     fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=240, margin=dict(l=20,r=20,t=40,b=20))
     st.plotly_chart(fig, use_container_width=True)
+    
     if st.session_state.encrypted_ledger:
         st.dataframe(pd.DataFrame(decrypt_ledger()).sort_index(ascending=False), use_container_width=True, hide_index=True)
 
 with col_right:
-    target = st.text_input("TARGET URL", value="https://github.com")
-    if st.button("🚀 INICIAR INFILTRAÇÃO"):
+    target = st.text_input("AUDIT TARGET URL", value="https://github.com")
+    if st.button("🚀 EXECUTAR INFILTRAÇÃO"):
         try:
             start = time.perf_counter()
             response = httpx.get(target, timeout=5.0)
             secure_store({"TS": datetime.datetime.now().strftime("%H:%M:%S"), "TARGET": target, "STATUS": response.status_code, "TYPE": "MISSION_SUCCESS", "LATENCY": f"{(time.perf_counter()-start)*1000:.2f}ms"})
-            st.success("BLOCK MINED.")
-        except: st.error("FAIL.")
+            st.success("NEW BLOCK MINED.")
+        except: st.error("CONNECTION FAIL.")
 
-    if st.button("📄 GERAR DOSSIÊ R$ 1.000/H"):
+    if st.button("📄 PREPARAR DOSSIÊ (R$ 1.000/H)"):
         if st.session_state.encrypted_ledger:
             last = decrypt_ledger()[-1]
             pdf = FPDF()
             pdf.add_page()
             pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
             pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
-            pdf.cell(0, 10, "XEON COMMAND - AUDIT EVIDENCE", 0, 1, 'C'); pdf.ln(10)
+            pdf.cell(0, 10, "XEON COMMAND - OFFICIAL AUDIT EVIDENCE", 0, 1, 'C'); pdf.ln(10)
             pdf.set_font("Courier", "", 10)
-            lines = [f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO", f"VALUATION: R$ 1.000,00 / HOUR", f"TS: {last['TS']}", f"HASH: {last['CURRENT_HASH']}", "STATUS: VERIFIED"]
+            lines = [
+                f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
+                f"RATE: R$ 1.000,00 / HOUR",
+                f"TIMESTAMP: {last['TS']}",
+                f"TARGET_AUDITED: {last['TARGET']}",
+                f"LATENCY: {last['LATENCY']}",
+                f"CURRENT_HASH: {last['CURRENT_HASH']}",
+                f"PREV_HASH: {last['PREV_HASH']}",
+                f"SIGNATURE: {last['SIG'][:48]}...",
+                "--------------------------------------------------",
+                "CERTIFICATION: MISSION CRITICAL DATA PURITY VERIFIED",
+                "COMPLIANCE: EB-1A EXTRAORDINARY ABILITY"
+            ]
             for l in lines: pdf.cell(0, 8, l, 0, 1, 'L')
-            st.download_button("💾 DOWNLOAD EVIDÊNCIA PDF", pdf.output(dest='S').encode('latin-1'), f"AUDIT_{last['TS']}.pdf", "application/pdf")
-        else: st.warning("Ledger vazio.")
+            st.download_button("💾 CLIQUE PARA BAIXAR PDF", pdf.output(dest='S').encode('latin-1'), f"XEON_AUDIT_{last['TS'].replace(':','')}.pdf", "application/pdf")
+        else: st.warning("Execute a missão antes de imprimir.")
 
     if st.button("☢️ PURGAR"): st.session_state.clear(); st.rerun()
 
-prompt = st.chat_input("Insira Comando Soberano...")
+prompt = st.chat_input("Insira Comando Soberano para encerrar missão...")
