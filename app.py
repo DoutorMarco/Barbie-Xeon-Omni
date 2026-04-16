@@ -41,8 +41,8 @@ st.markdown("""
     div[data-testid="metric-container"] { border: 1px solid #00FF41; background-color: #050505 !important; padding: 20px; }
     [data-testid="stMetricValue"] { color: #00FF41 !important; }
     input { background-color: #0a0a0a !important; color: #00FF41 !important; border: 1px solid #00FF41 !important; }
-    .stTabs [data-baseweb="tab-list"] { background-color: #000000; }
-    .stTabs [data-baseweb="tab"] { color: #00FF41 !important; font-weight: bold; }
+    .stTabs [data-baseweb="tab-list"] { background-color: #000000; gap: 20px; }
+    .stTabs [data-baseweb="tab"] { color: #00FF41 !important; font-weight: bold; border: 1px solid #00FF41; padding: 10px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -71,10 +71,30 @@ def decrypt_ledger():
     aesgcm = AESGCM(st.session_state.aes_key)
     return [json.loads(aesgcm.decrypt(i["nonce"], i["blob"], None)) for i in st.session_state.encrypted_ledger]
 
-# [INTERFACE PRINCIPAL]
-st.title("🛰️ XEON COMMAND v54.4 | SOVEREIGN OPERATIONS HUB")
+# [PROTOCOL 04: PERCEPÇÃO NEURAL - VOZ E ESCUTA]
+st.components.v1.html("""
+    <script>
+    const s = window.speechSynthesis;
+    window.speak = (t) => { const u = new SpeechSynthesisUtterance(t); u.lang='pt-BR'; u.pitch=0.7; u.rate=0.9; s.speak(u); };
+    window.listen = () => {
+        const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        r.lang='pt-BR'; r.start();
+        r.onresult = (e) => { 
+            const t = e.results[0][0].transcript;
+            alert("COMANDO CAPTURADO: " + t);
+            window.speak("Processando comando: " + t);
+        };
+    };
+    </script>
+    <div style="display:flex; gap:10px;">
+        <button onclick="speak('Módulo de Voz Ativo. Sistema Nominal.')" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold; letter-spacing:1px;">🔊 STATUS VOZ</button>
+        <button onclick="listen()" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold; letter-spacing:1px;">🎙️ ESCUTA ATIVA</button>
+    </div>
+""", height=70)
 
-# Criação das Abas
+st.title("🛰️ XEON COMMAND v54.4 | SOVEREIGN HUB")
+
+# Estrutura de Abas Soberanas
 tab_monitor, tab_auditoria, tab_dossies = st.tabs(["📊 MONITORAMENTO", "🛡️ AUDITORIA ATIVA", "📑 DOSSIÊS CVM"])
 
 with tab_monitor:
@@ -84,53 +104,61 @@ with tab_monitor:
         fig = go.Figure(go.Indicator(mode="gauge+number", value=cpu_val, title={'text': "CPU LOAD", 'font': {'color': "#00FF41"}}, gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black", 'bordercolor': "#00FF41"}))
         fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=240, margin=dict(l=20, r=20, t=40, b=20))
         st.plotly_chart(fig, use_container_width=True)
+        
         if st.session_state.encrypted_ledger:
-            st.write("### 🔗 LEDGER IMUTÁVEL (CRYPTOGRAPHIC PROOF)")
+            st.write("### 🔗 LEDGER IMUTÁVEL (DECRYPTED)")
             st.dataframe(pd.DataFrame(decrypt_ledger()).sort_index(ascending=False), use_container_width=True)
+    
     with col_right:
         st.metric("INTEGRIDADE SHA-3", SCRIPT_HASH[:16])
-        st.metric("RATE", "$450/HR")
+        st.metric("SOH STATUS", "NOMINAL")
         if st.button("☢️ PURGAR SESSÃO"):
             st.session_state.clear()
             st.rerun()
 
 with tab_auditoria:
-    target = st.text_input("AUDIT TARGET (URL)", value="https://google.com")
-    if st.button("🚀 EXECUTAR PROTOCOLO DE INFILTRAÇÃO"):
-        try:
-            start_time = time.perf_counter()
-            headers = {"User-Agent": "XEON-COMMAND-AUDITOR/54.4"}
-            with httpx.Client(timeout=10.0, verify=False) as client:
-                response = client.get(target, headers=headers)
-                latency = (time.perf_counter() - start_time) * 1000
-                secure_store({
-                    "TS": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "TARGET": target,
-                    "STATUS": response.status_code,
-                    "LATENCY": f"{latency:.2f}ms"
-                })
-                st.success(f"BLOCK MINED: {response.status_code}")
-                st.rerun()
-        except Exception as e:
-            st.error(f"FAIL: {str(e)}")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        target = st.text_input("AUDIT TARGET", value="https://google.com")
+        if st.button("🚀 INICIAR PROTOCOLO"):
+            try:
+                start_time = time.perf_counter()
+                headers = {"User-Agent": "XEON-COMMAND-AUDITOR/54.4"}
+                with httpx.Client(timeout=10.0, verify=False) as client:
+                    response = client.get(target, headers=headers)
+                    latency = (time.perf_counter() - start_time) * 1000
+                    secure_store({"TS": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "TARGET": target, "STATUS": response.status_code, "LATENCY": f"{latency:.2f}ms"})
+                    st.success(f"BLOCK MINED: {response.status_code}")
+                    st.rerun()
+            except Exception as e: st.error(f"FAIL: {str(e)}")
+    
+    with col2:
+        if st.button("📄 GERAR RELATÓRIO PDF"):
+            if st.session_state.encrypted_ledger:
+                last = decrypt_ledger()[-1]
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
+                pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
+                pdf.cell(0, 10, "XEON AUDIT REPORT", 0, 1, 'C'); pdf.ln(10)
+                pdf.set_font("Courier", "", 10)
+                lines = [f"ARCHITECT: MARCO ANTONIO", f"TS: {last['TS']}", f"TARGET: {last['TARGET']}", f"HASH: {last['CURRENT_HASH']}"]
+                for l in lines: pdf.cell(0, 8, l, 0, 1, 'L')
+                st.session_state.pdf_buffer = pdf.output(dest='S').encode('latin-1')
+                st.success("PDF PRONTO.")
+        
+        if st.session_state.pdf_buffer:
+            st.download_button("💾 BAIXAR PDF", data=st.session_state.pdf_buffer, file_name="XEON_REPORT.pdf", mime="application/pdf")
 
 with tab_dossies:
-    st.header("📑 Dossiês de Auditoria de Infraestrutura Crítica")
-    st.write("Exposição de evidências de falhas sistêmicas em governança corporativa.")
-    
-    # Caso YDUQS / CVM
-    with st.expander("🛡️ CASO: YDUQS PARTICIPAÇÕES S.A. | CVM 215360716", expanded=True):
-        st.error("STATUS: ENVIADO À OUVIDORIA - RISCO SISTÊMICO DETECTADO")
+    st.header("📑 Dossiês de Governança Corporativa")
+    with st.expander("🛡️ CASO CVM: YDUQS PARTICIPAÇÕES S.A. | PROTOCOLO 215360716", expanded=True):
+        st.error("RISCO SISTÊMICO DE GOVERNANÇA DETECTADO")
         st.markdown("""
-        **Resumo do Caso:**
-        *   **Objeto:** Fraude contra FIES/TCU e descumprimento de ordens judiciais (TJRJ).
-        *   **Impacto:** Risco reputacional omitido e contingência financeira bilionária.
-        *   **Normativas:** Violação da Resolução CVM 80/2022 e 44/2021.
+        - **FRAUDE FIES/TCU:** Retenção ilegal de bolsas e risco de descredenciamento.
+        - **DESCUMPRIMENTO TJRJ:** Violação deliberada de ordens judiciais.
+        - **STATUS:** Enviado à Ouvidoria do Participante (CVM).
         """)
-        st.warning("O Dossiê completo está disponível para download autenticado abaixo.")
-        
-        # Simulação de Download para o Case Study (O PDF deve estar no repositório GitHub)
-        st.button("📄 SOLICITAR ACESSO AO DOSSIÊ YDUQS (PROJETADO)")
+        st.info("Evidência técnica integrada ao sistema para fins de Visto EB-1A.")
 
-# [FOOTER SOBERANO]
-st.chat_input("Command Input...")
+st.chat_input("Command Sovereign Input...")
