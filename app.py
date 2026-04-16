@@ -8,9 +8,7 @@ import pandas as pd
 import httpx
 import asyncio
 import json
-import os
 import time
-from io import BytesIO  # [CRITICAL UPGRADE v54.2]
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
@@ -19,12 +17,12 @@ from cryptography.hazmat.primitives import hashes
 def get_script_integrity():
     try:
         with open(__file__, "rb") as f: return hashlib.sha3_256(f.read()).hexdigest()
-    except: return "SOH_CORE_V54_2_BYTESIO_ACTIVE"
+    except: return "STABLE_SOH_NODE_V54_3"
 
 SCRIPT_HASH = get_script_integrity()
 
 # [PROTOCOL 02: ESTÉTICA BLACKOUT TOTAL]
-st.set_page_config(page_title="XEON COMMAND v54.2", layout="wide")
+st.set_page_config(page_title="XEON COMMAND v54.3", layout="wide")
 st.markdown("""
     <style>
     #MainMenu, header, footer { visibility: hidden; }
@@ -34,9 +32,6 @@ st.markdown("""
         background-color: #000000 !important; color: #00FF41 !important;
         font-family: 'Courier New', monospace !important;
     }
-    [data-testid="stChatInput"], div[data-baseweb="base-input"], input, textarea {
-        background-color: #000000 !important; border: 1px solid #00FF41 !important; color: #00FF41 !important;
-    }
     .stButton>button {
         width: 100%; background-color: #000000 !important; color: #00FF41 !important;
         border: 1px solid #00FF41 !important; border-radius: 0px; text-transform: uppercase;
@@ -45,7 +40,6 @@ st.markdown("""
     .stButton>button:hover { background-color: #00FF41 !important; color: #000000 !important; box-shadow: 0 0 50px #00FF41; }
     div[data-testid="metric-container"] { border: 1px solid #00FF41; background-color: #050505 !important; padding: 20px; }
     [data-testid="stMetricValue"] { color: #00FF41 !important; }
-    .stDataFrame { border: 1px solid #00FF41 !important; background-color: #000000 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -55,9 +49,9 @@ if 'priv_key' not in st.session_state:
     st.session_state.aes_key = AESGCM.generate_key(bit_length=256)
     st.session_state.encrypted_ledger = []
     st.session_state.last_block_hash = "GENESIS_BLOCK_0000"
+    st.session_state.pdf_buffer = None # Buffer de persistência
 
 def secure_store(data_dict):
-    nonce = os.urandom(12)
     aesgcm = AESGCM(st.session_state.aes_key)
     data_dict["PREV_HASH"] = st.session_state.last_block_hash
     raw_data = json.dumps(data_dict).encode()
@@ -65,6 +59,7 @@ def secure_store(data_dict):
     st.session_state.last_block_hash = current_hash
     data_dict["CURRENT_HASH"] = current_hash
     data_dict["SIG"] = st.session_state.priv_key.sign(current_hash.encode(), ec.ECDSA(hashes.SHA256())).hex()
+    nonce = os.urandom(12)
     encrypted_blob = aesgcm.encrypt(nonce, json.dumps(data_dict).encode(), None)
     st.session_state.encrypted_ledger.append({"nonce": nonce, "blob": encrypted_blob})
 
@@ -72,7 +67,7 @@ def decrypt_ledger():
     aesgcm = AESGCM(st.session_state.aes_key)
     return [json.loads(aesgcm.decrypt(i["nonce"], i["blob"], None)) for i in st.session_state.encrypted_ledger]
 
-# [PROTOCOL 04: PERCEPÇÃO NEURAL (VOZ/MIC)]
+# [PROTOCOL 04: PERCEPÇÃO NEURAL]
 st.components.v1.html("""
     <script>
     const s = window.speechSynthesis;
@@ -80,83 +75,61 @@ st.components.v1.html("""
     window.listen = () => {
         const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         r.lang='pt-BR'; r.start();
-        r.onresult = (e) => { alert("CAPTURADO: " + e.results.transcript); window.speak("Sincronizando fluxo."); };
+        r.onresult = (e) => { alert("CAPTURADO: " + e.results.transcript); };
     };
     </script>
     <div style="display:flex; gap:10px;">
-        <button onclick="speak('Módulo v54.2 nominal. Buffer de memória direto ativado para download seguro.')" 
-            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🔊 VOZ ON</button>
-        <button onclick="listen()" 
-            style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🎙️ MIC ON</button>
+        <button onclick="speak('Módulo de impressão blindado. Bytes persistidos em sessão.')" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🔊 VOZ ON</button>
+        <button onclick="listen()" style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:12px; cursor:pointer; font-family:monospace; font-weight:bold;">🎙️ MIC ON</button>
     </div>
 """, height=70)
 
-# [PROTOCOL 05: DASHBOARD E MONITORAMENTO]
-st.title("🛰️ XEON COMMAND v54.2 | BYTESIO SOVEREIGNTY")
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("RATE", "R$ 1.000/h", "SOVEREIGN")
-c2.metric("LEDGER", f"BLOCK_{len(st.session_state.encrypted_ledger)}", "NOMINAL")
-c3.metric("INTEGRIDADE", SCRIPT_HASH[:8], "SHA-3")
-c4.metric("OUTPUT", "MEMORY_FLOW", "ACTIVE")
-
-st.write("---")
+st.title("🛰️ XEON COMMAND v54.3 | PDF FIX")
 
 col_left, col_right = st.columns([1.6, 1])
 
 with col_left:
-    fig = go.Figure(go.Indicator(mode="gauge+number", value=psutil.cpu_percent(), title={'text': "CPU LOAD", 'font': {'color': "#00FF41"}}, gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black", 'bordercolor': "#00FF41"}))
-    fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=240, margin=dict(l=20,r=20,t=40,b=20))
+    cpu_val = psutil.cpu_percent()
+    fig = go.Figure(go.Indicator(mode="gauge+number", value=cpu_val, title={'text': "CPU LOAD", 'font': {'color': "#00FF41"}}, gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black", 'bordercolor': "#00FF41"}))
+    fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', font={'color': "#00FF41"}, height=240)
     st.plotly_chart(fig, use_container_width=True)
     
     if st.session_state.encrypted_ledger:
-        st.dataframe(pd.DataFrame(decrypt_ledger()).sort_index(ascending=False), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(decrypt_ledger()).sort_index(ascending=False), use_container_width=True)
 
 with col_right:
-    target = st.text_input("AUDIT TARGET URL", value="https://github.com")
-    if st.button("🚀 EXECUTAR INFILTRAÇÃO"):
+    target = st.text_input("AUDIT TARGET", value="https://google.com")
+    if st.button("🚀 INICIAR INFILTRAÇÃO"):
         try:
             start = time.perf_counter()
             response = httpx.get(target, timeout=5.0)
-            secure_store({"TS": datetime.datetime.now().strftime("%H:%M:%S"), "TARGET": target, "STATUS": response.status_code, "TYPE": "MISSION_SUCCESS", "LATENCY": f"{(time.perf_counter()-start)*1000:.2f}ms"})
+            secure_store({"TS": datetime.datetime.now().strftime("%H:%M:%S"), "TARGET": target, "STATUS": response.status_code, "LATENCY": f"{(time.perf_counter()-start)*1000:.2f}ms"})
             st.success("BLOCK MINED.")
-        except: st.error("CONNECTION FAIL.")
+        except: st.error("FAIL.")
 
-    if st.button("📄 GERAR DOSSIÊ R$ 1.000/H"):
+    # [FIX: GERAÇÃO E DOWNLOAD EM DOIS ESTÁGIOS]
+    if st.button("📄 PREPARAR PDF R$ 1.000/H"):
         if st.session_state.encrypted_ledger:
             last = decrypt_ledger()[-1]
-            # [UPGRADE v54.2: BYTESIO STREAMING]
             pdf = FPDF()
             pdf.add_page()
             pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
             pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
-            pdf.cell(0, 10, "XEON COMMAND - OFFICIAL AUDIT EVIDENCE", 0, 1, 'C'); pdf.ln(10)
+            pdf.cell(0, 10, "XEON COMMAND - OFFICIAL AUDIT", 0, 1, 'C'); pdf.ln(10)
             pdf.set_font("Courier", "", 10)
-            
-            lines = [
-                f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
-                f"VALUATION: R$ 1.000,00 / HOUR",
-                f"TS: {last['TS']}",
-                f"HASH: {last['CURRENT_HASH']}",
-                f"STATUS: REALITY PURITY OPERATIONAL",
-                f"INTEGRITY: SHA-3_{SCRIPT_HASH[:16]}",
-                "--------------------------------------------------",
-                "EB-1A COMPLIANT EVIDENCE | NIW CATEGORY"
-            ]
-            for l in lines:
-                safe_l = str(l).encode('ascii', 'ignore').decode('ascii')
-                pdf.cell(0, 8, safe_l, 0, 1, 'L')
-            
-            # Força o PDF para o buffer de memória
-            pdf_output = pdf.output(dest='S').encode('latin-1')
-            st.download_button(
-                label="💾 BAIXAR AGORA (BYTESIO)",
-                data=pdf_output,
-                file_name=f"XEON_AUDIT_{last['TS'].replace(':','')}.pdf",
-                mime="application/pdf"
-            )
-        else:
-            st.warning("Ledger vazio.")
+            text = f"ARCHITECT: MARCO ANTONIO\nRATE: R$ 1.000,00/H\nTS: {last['TS']}\nHASH: {last['CURRENT_HASH']}\nINTEGRITY: SHA-3"
+            for line in text.split('\n'): pdf.cell(0, 8, line, 0, 1, 'L')
+            st.session_state.pdf_buffer = pdf.output(dest='S').encode('latin-1')
+            st.success("PDF gerado na memória! Clique abaixo para baixar.")
+
+    if st.session_state.pdf_buffer:
+        st.download_button(
+            label="💾 CLIQUE AQUI PARA BAIXAR PDF",
+            data=st.session_state.pdf_buffer,
+            file_name="XEON_AUDIT_PROVEN.pdf",
+            mime="application/pdf"
+        )
 
     if st.button("☢️ PURGAR"): st.session_state.clear(); st.rerun()
 
-prompt = st.chat_input("Insira Instrução Soberana...")
+prompt = st.chat_input("Comando Soberano...")
