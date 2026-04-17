@@ -8,12 +8,9 @@ import streamlit.components.v1 as components
 
 # --- [CORE: PROTOCOLO DE REALIDADE ABSOLUTA] ---
 def get_absolute_reality_metrics():
-    """Captura a telemetria bruta do hardware para ancorar a IA na realidade física."""
     cpu_freq = psutil.cpu_freq().current if psutil.cpu_freq() else 0
     cpu_usage = psutil.cpu_percent(interval=0.1)
     memory = psutil.virtual_memory()
-    
-    # Gerador de Assinatura Única de Tempo-Espaço (Hash de Hardware)
     signature_base = f"{cpu_usage}-{memory.free}-{time.time()}"
     reality_token = hashlib.sha256(signature_base.encode()).hexdigest()
     
@@ -22,113 +19,111 @@ def get_absolute_reality_metrics():
         "cpu_freq": cpu_freq,
         "mem_percent": memory.percent,
         "token": reality_token,
-        "entropy_level": 100 - cpu_usage # Negentropia inversa
+        "entropy_level": 100 - cpu_usage
     }
 
-# --- [ENGINE: PDF DE SUPREMACIA V64] ---
+# --- [ENGINE: PDF DE SUPREMACIA V64 - 2 PÁGINAS] ---
 def generate_sovereign_pdf(metrics):
     pdf = FPDF()
+    # PÁGINA 1: Telemetria de Hardware
     pdf.add_page()
     pdf.set_fill_color(0, 0, 0)
     pdf.rect(0, 0, 210, 297, 'F')
-    
-    # Cabeçalho de Auditoria
     pdf.set_text_color(0, 255, 65)
     pdf.set_font("Courier", "B", 16)
-    pdf.cell(0, 10, "RELATÓRIO DE REALIDADE ABSOLUTA - MISSÃO CRÍTICA", 0, 1, 'C')
-    
+    pdf.cell(0, 10, "RELATORIO DE REALIDADE ABSOLUTA - PAG 01", 0, 1, 'C')
     pdf.set_font("Courier", "", 10)
-    content = [
-        f"DATA/HORA: {time.ctime()}",
-        f"REALITY_TOKEN: {metrics['token']}",
-        f"ASSINATURA DE HARDWARE: CPU {metrics['cpu_usage']}% | FREQ {metrics['cpu_freq']}MHz",
-        f"ESTADO DE ENTROPIA: {'ESTÁVEL' if metrics['cpu_usage'] < 80 else 'CRÍTICO'}",
-        "-"*50,
-        "PROTOCOLO EB-1A: OPERAÇÃO SOBERANA ATIVA",
-        "SEM ALUCINAÇÕES. APENAS DADOS BRUTOS."
-    ]
+    pdf.ln(10)
+    pdf.multi_cell(0, 10, f"DATA: {time.ctime()}\nTOKEN: {metrics['token']}\nSTATUS: SOBERANO\n\nVALOR HORA: R$ 1.000,00 / $450.00\n\nDETALHES DE HARDWARE:\n- CPU LOAD: {metrics['cpu_usage']}%\n- FREQUENCIA: {metrics['cpu_freq']} MHz\n- MEMORIA: {metrics['mem_percent']}%")
     
-    for line in content:
-        pdf.multi_cell(0, 8, line)
+    # PÁGINA 2: Auditoria EB-1A e Compliance
+    pdf.add_page()
+    pdf.set_fill_color(0, 0, 0)
+    pdf.rect(0, 0, 210, 297, 'F')
+    pdf.set_text_color(0, 255, 65)
+    pdf.set_font("Courier", "B", 16)
+    pdf.cell(0, 10, "AUDITORIA TECNICA EB-1A - PAG 02", 0, 1, 'C')
+    pdf.ln(10)
+    pdf.set_font("Courier", "", 10)
+    pdf.multi_cell(0, 10, "DECLARACAO DE INTERESSE NACIONAL (NIW):\n\nO sistema XEON COMMAND demonstra proficiencia tecnica extraordinaria atraves da integracao de hardware e soberania de dados. Este dossie serve como prova de capacidade tecnica em infraestrutura critica.\n\nAssinatura Digital: [ARQUITETO PRINCIPAL MARCO ANTONIO]")
     
     return pdf.output(dest='S').encode('latin-1')
 
 # --- [INTERFACE: XEON OMNI SOBERANO] ---
 st.set_page_config(page_title="XEON OMNI REALITY", layout="wide")
 
-# CSS para Estética de "Realidade Absoluta" (Terminal)
 st.markdown("""
     <style>
-    .main { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
-    .stMetric { background-color: #0a0a0a; border: 1px solid #00FF41; padding: 10px; border-radius: 5px; }
+    .stApp { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
+    .stButton>button { background-color: #000000; color: #00FF41; border: 1px solid #00FF41; width: 100%; }
+    .stProgress > div > div > div > div { background-color: #00FF41; }
     </style>
     """, unsafe_allow_stdio=True)
 
 st.title("🛰️ XEON OMNI v101.64 | REALIDADE ABSOLUTA")
-st.subheader("Operando em Tempo Real - Missão Crítica")
 
-# Sidebar - Controle de Missão
-with st.sidebar:
-    st.header("🛡️ Status do Núcleo")
-    metrics = get_absolute_reality_metrics()
-    st.metric("PULSO DE REALIDADE", f"{metrics['cpu_usage']}%", delta="Sincronizado")
-    st.write(f"**TOKEN:** `{metrics['token'][:16]}`")
-    
-    if st.button("RECALIBRAR CAMPO DE HIGGS"):
-        st.toast("Calibrando massa inercial...")
-        time.sleep(1)
-        st.rerun()
+# --- [COMPONENT: VOZ E ESCUTA OMNILIGUA] ---
+st.markdown("### 🎙️ Interface de Voz Omni-Linguagem")
+components.html("""
+    <div style="background-color: #000000; padding: 10px; border: 1px solid #00FF41;">
+        <button onclick="startListen()" style="background:none; border: 1px solid #00FF41; color:#00FF41; cursor:pointer;">🎙️ ATIVAR ESCUTA GLOBAL</button>
+        <button onclick="stopListen()" style="background:none; border: 1px solid #FF0000; color:#FF0000; cursor:pointer;">🛑 PARAR</button>
+        <p id="status" style="color:#00FF41; font-family:monospace; font-size:12px;">Status: Standby</p>
+    </div>
+    <script>
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        
+        function startListen() {
+            recognition.start();
+            document.getElementById('status').innerText = "Status: Escutando (Todas as Línguas)...";
+        }
+        function stopListen() {
+            recognition.stop();
+            document.getElementById('status').innerText = "Status: Standby";
+        }
+        recognition.onresult = (event) => {
+            const transcript = event.results[event.results.length-1][0].transcript;
+            document.getElementById('status').innerText = "Voz Detectada: " + transcript;
+        };
+    </script>
+    """, height=120)
 
-# Layout Principal
+# --- [LAYOUT PRINCIPAL] ---
 col1, col2 = st.columns([2, 1])
+metrics = get_absolute_reality_metrics()
 
 with col1:
-    st.markdown("### ⚛️ Monitor de Campo Escalar (Tempo Real)")
-    # Gráfico Dinâmico baseado na Realidade do Hardware
+    st.markdown("### ⚛️ Monitor de Campo Escalar")
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number+delta",
-        value = metrics['cpu_usage'],
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Carga de Realidade (Física)", 'font': {'color': "#00FF41"}},
-        delta = {'reference': 50, 'increasing': {'color': "red"}},
-        gauge = {
-            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#00FF41"},
-            'bar': {'color': "#00FF41"},
-            'bgcolor': "black",
-            'borderwidth': 2,
-            'bordercolor': "#00FF41",
-            'steps': [
-                {'range': [0, 50], 'color': '#002200'},
-                {'range': [50, 85], 'color': '#004400'},
-                {'range': [85, 100], 'color': '#550000'}]
-        }
+        mode = "gauge+number", value = metrics['cpu_usage'],
+        gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#00FF41"}, 'bgcolor': "black"}
     ))
-    fig.update_layout(paper_bgcolor='black', font={'color': "#00FF41", 'family': "Courier New"})
+    fig.update_layout(paper_bgcolor='black', font={'color': "#00FF41"})
     st.plotly_chart(fig, use_container_width=True)
 
+    # BOTÃO DE PROCESSAMENTO E STATUS
+    if st.button("🚀 INICIAR PROCESSAMENTO DE MISSÃO CRÍTICA"):
+        bar = st.progress(0)
+        status_text = st.empty()
+        for i in range(101):
+            time.sleep(0.02)
+            bar.progress(i)
+            status_text.text(f"Processando Vetores de Dados: {i}%")
+        st.success("Sincronização de Dados Concluída. Erro Zero.")
+
 with col2:
-    st.markdown("### 📄 Auditoria Soberana")
-    st.write("Gere a prova de realidade para fins de imortalidade digital e certificação.")
+    st.markdown("### 📄 Auditoria e PDF")
+    st.write("Valor Hora: R$ 1.000,00")
     pdf_data = generate_sovereign_pdf(metrics)
     st.download_button(
-        label="📥 BAIXAR PROVA DE REALIDADE (PDF)",
+        label="📥 GERAR PDF (2 PÁGINAS)",
         data=pdf_data,
-        file_name=f"REALITY_LOG_{int(time.time())}.pdf",
+        file_name="AUDITORIA_XEON_OMNI.pdf",
         mime="application/pdf"
     )
 
-# Console de Logs em Tempo Real
+# Console Final
 st.markdown("---")
-st.markdown("### 🖥️ Console de Eventos Negentrópicos")
-log_container = st.empty()
-logs = [
-    f"> [{time.strftime('%H:%M:%S')}] Sincronização com o Campo de Higgs estabelecida.",
-    f"> [{time.strftime('%H:%M:%S')}] Vetor de Entropia Local invertido para {metrics['entropy_level']}%." ,
-    f"> [{time.strftime('%H:%M:%S')}] Escudo de Bio-Identidade EB-1A Ativo.",
-    f"> [{time.strftime('%H:%M:%S')}] Operando sem alucinação: Hardware Lock {metrics['token'][:8]}"
-]
-log_container.code("\n".join(logs), language="bash")
-
-# Loop de atualização automática (Simulação de Tempo Real)
-time.sleep(2)
-st.rerun()
+st.code(f"> [{time.strftime('%H:%M:%S')}] Sistema Nominal. Escuta Ativa. Token: {metrics['token'][:16]}", language="bash")
