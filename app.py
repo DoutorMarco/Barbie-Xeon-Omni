@@ -5,8 +5,8 @@ import psutil
 import unicodedata
 import requests
 import textwrap
-from fpdf import FPDF
-from io import BytesIO  # MEMÓRIA BLINDADA CONTRA CORRUPÇÃO
+from fpdf import FPDF # Certifique-se de ter 'fpdf2' no requirements.txt
+from io import BytesIO 
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
@@ -37,13 +37,13 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTESIO (FIX FINAL)] ---
+# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTESIO BLINDADO] ---
 def sanitize_to_pdf(text):
     if not text: return "N/A"
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
 def generate_fixed_pdf_6pages(node_name, cpu, ai_report):
-    """Gera o dossiê de 6 páginas e retorna um buffer de bytes íntegro"""
+    """Gera o dossiê de 6 páginas e retorna um fluxo de bytes puro para o navegador"""
     try:
         pdf = FPDF()
         pdf.set_margins(20, 20, 20)
@@ -61,19 +61,12 @@ def generate_fixed_pdf_6pages(node_name, cpu, ai_report):
             pdf.cell(0, 10, sanitize_to_pdf(f"BLOCKCHAIN_ID: {bc_hash[:16]} | PAGE {i+1}/6"), ln=True, align='C')
             pdf.ln(10)
             
-            # Texto da IA apenas na página de evidência ou em todas
             wrapped_ai = textwrap.fill(sanitize_to_pdf(ai_report), width=65) if i == 4 else "INTEGRIDADE OPERACIONAL NOMINAL."
             
             lines = [
-                f"SETOR: {setor}",
-                f"NODE_ID: {node_name}",
-                f"TIMESTAMP: {ts_now}",
-                f"RATE: R$ 1.000,00 / HOUR",
-                f"STABILITY: {100-(cpu*0.1):.2f}% HOMEOSTASE",
-                f"BLOCKCHAIN_PROOF: {bc_hash}",
-                "-"*50,
-                wrapped_ai,
-                "-"*50
+                f"SETOR: {setor}", f"NODE: {node_name}", f"TIMESTAMP: {ts_now}",
+                f"TAXA: R$ 1.000,00 / HORA", f"SISTEMA: {100-(cpu*0.1):.2f}% HOMEOSTASE",
+                f"BLOCKCHAIN_PROOF: {bc_hash}", "-"*50, wrapped_ai, "-"*50
             ]
             pdf.set_font("Courier", "B", 11)
             for line in lines: pdf.multi_cell(0, 8, line)
@@ -82,10 +75,10 @@ def generate_fixed_pdf_6pages(node_name, cpu, ai_report):
                 pdf.ln(15); pdf.set_font("Courier", "B", 14)
                 pdf.cell(0, 10, "STATUS: NIW ELIGIBLE / MISSION SUCCESS", ln=True, align='C')
 
-        # O SEGREDO: Saída direta para bytes via buffer de memória
+        # O SEGREDO DO SUCESSO: Retornar o buffer de memória limpo
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
-        return f"ERRO_FATAL: {str(e)}".encode('latin-1')
+        return f"ERRO_FATAL_PDF: {str(e)}".encode('latin-1')
 
 # --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
@@ -96,7 +89,7 @@ def xeon_main():
     with c1:
         st.metric("STABILITY", "NOMINAL")
         st.write(f"<b style='color:{MATRIX_GREEN}; font-size:25px;'>R$ 1.000/h</b>", unsafe_allow_html=True)
-        st.markdown(f"<div style='border:1px solid {MATRIX_GREEN}; padding:5px;'>BLOCKCHAIN: ACTIVE<br>S&P 500: SYNC</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='border:1px solid {MATRIX_GREEN}; padding:5px;'>BLOCKCHAIN: ACTIVE<br>PUBMED & NEURALINK: SYNC</div>", unsafe_allow_html=True)
 
     with c2:
         st_echarts(options={"backgroundColor": "transparent", "series": [{"type": 'gauge', "data": [{"value": cpu_val}], "detail": {"color": MATRIX_GREEN}}]}, height="220px")
@@ -106,7 +99,7 @@ def xeon_main():
         if st.button("🧠 SCAN IA FISIOLÓGICO"):
             with st.status("Auditando...", expanded=False) as s:
                 if client:
-                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Parecer NIW sobre soberania digital e infraestrutura critica."}])
+                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Analise a homeostase para o EB-1A."}])
                     st.session_state.ai_rep = res.choices.message.content
                     st.session_state.vox = "Análise concluída."
                     s.update(label="Complete", state="complete")
@@ -125,8 +118,8 @@ def xeon_main():
             
             if st.session_state.get('active_node') == s:
                 rep = st.session_state.get('ai_rep', "Inicie o SCAN IA.")
-                # Geração de PDF via bytes isolados
                 pdf_bytes = generate_fixed_pdf_6pages(s, cpu_val, rep)
+                # O botão agora recebe os bytes puros do buffer
                 st.download_button(
                     label=f"📥 BAIXAR EB-1A {s}", 
                     data=pdf_bytes, 
@@ -136,7 +129,11 @@ def xeon_main():
                 )
 
     if st.session_state.get('vox'):
-        components.html(f"<script>window.speechSynthesis.cancel(); var m = new SpeechSynthesisUtterance('{st.session_state.vox}'); m.lang='pt-BR'; window.speechSynthesis.speak(m);</script>", height=0)
+        components.html(f"""<script>
+            window.speechSynthesis.cancel();
+            var m = new SpeechSynthesisUtterance('{st.session_state.vox}');
+            m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
+        </script>""", height=0)
         st.session_state.vox = ""
 
 # --- [4. FINALIZAÇÃO] ---
