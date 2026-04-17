@@ -3,11 +3,10 @@ import time
 import hashlib
 import psutil
 import unicodedata
-import yfinance as yf
 import requests
 import textwrap
-import base64
 from fpdf import FPDF
+from io import BytesIO  # MEMÓRIA BLINDADA
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
@@ -38,13 +37,13 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BASE64 (ESTABILIDADE TOTAL)] ---
+# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTESIO (CORREÇÃO DEFINITIVA)] ---
 def sanitize_to_pdf(text):
     if not text: return "N/A"
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-def generate_base64_pdf(node_name, cpu, ai_report):
-    """Gera o PDF de 6 páginas e retorna em Base64 para evitar erro de carregamento"""
+def generate_fixed_pdf_6pages(node_name, cpu, ai_report):
+    """Gera o dossiê de 6 páginas em BytesIO para estabilidade total no Streamlit Cloud"""
     try:
         pdf = FPDF()
         pdf.set_margins(20, 20, 20)
@@ -69,6 +68,7 @@ def generate_base64_pdf(node_name, cpu, ai_report):
                 f"NODE: {node_name}",
                 f"TIMESTAMP: {ts_now}",
                 f"RATE: R$ 1.000,00 / HOUR",
+                f"SISTEMA: {100-(cpu*0.1):.2f}% HOMEOSTASE",
                 f"BLOCKCHAIN_PROOF: {bc_hash}",
                 "-"*50,
                 wrapped_ai if i == 4 else "SISTEMA EM OPERACAO DE MISSAO CRITICA.",
@@ -81,11 +81,13 @@ def generate_base64_pdf(node_name, cpu, ai_report):
                 pdf.ln(15); pdf.set_font("Courier", "B", 14)
                 pdf.cell(0, 10, "STATUS: NIW ELIGIBLE / MISSION SUCCESS", ln=True, align='C')
 
-        # Converte o PDF para bytes e então para Base64
-        pdf_bytes = pdf.output()
-        return pdf_bytes # Streamlit download_button aceita bytes diretamente se não corrompidos
+        # O SEGREDO: Output para buffer binário puro
+        pdf_output = pdf.output(dest='S')
+        if isinstance(pdf_output, str):
+            return BytesIO(pdf_output.encode('latin-1'))
+        return BytesIO(pdf_output)
     except Exception as e:
-        return f"ERRO: {str(e)}".encode('latin-1')
+        return BytesIO(f"ERRO: {str(e)}".encode('latin-1'))
 
 # --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
@@ -106,11 +108,10 @@ def xeon_main():
         if st.button("🧠 SCAN IA FISIOLÓGICO"):
             with st.status("Auditando...", expanded=False) as s:
                 if client:
-                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Parecer NIW sobre soberania digital e infraestrutura critica."}])
+                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Analise a homeostase digital para o EB-1A."}])
                     st.session_state.ai_rep = res.choices.message.content
                     st.session_state.vox = "Análise concluída."
                     s.update(label="Complete", state="complete")
-                else: st.session_state.ai_rep = "IA em modo local."
 
     st.divider()
 
@@ -126,12 +127,12 @@ def xeon_main():
             
             if st.session_state.get('active_node') == s:
                 rep = st.session_state.get('ai_rep', "Inicie o SCAN IA.")
-                # Geração de PDF corrigida
-                pdf_data = generate_base64_pdf(s, cpu_val, rep)
+                # Geração de PDF via motor BytesIO
+                pdf_buffer = generate_fixed_pdf_6pages(s, cpu_val, rep)
                 st.download_button(
                     label=f"📥 BAIXAR EB-1A {s}", 
-                    data=pdf_data, 
-                    file_name=f"XEON_{s.replace(' ', '_')}.pdf", 
+                    data=pdf_buffer.getvalue(), 
+                    file_name=f"XEON_{s}.pdf", 
                     mime="application/pdf", 
                     key=f"dl_{i}"
                 )
@@ -149,4 +150,4 @@ st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAN
 if 'ai_rep' not in st.session_state: st.session_state.ai_rep = ""
 if 'vox' not in st.session_state: st.session_state.vox = ""
 xeon_main()
-st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | R$ 1.000/H | ZERO WHITE POLICY")
+st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | R$ 1.000/H | MISSÃO CRÍTICA")
