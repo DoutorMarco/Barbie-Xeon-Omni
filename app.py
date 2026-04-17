@@ -13,7 +13,6 @@ BLACKOUT = "#000000"
 
 st.set_page_config(page_title="XEON COMMAND v131.0", layout="wide")
 
-# CSS SOBERANO: ZERO WHITE POLICY
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
@@ -24,7 +23,7 @@ st.markdown(f"""
     }}
     .stDownloadButton button {{
         border: 2px solid {MATRIX_GREEN} !important; background-color: {MATRIX_GREEN} !important;
-        color: {BLACKOUT} !important; border-radius: 0px !important; width: 100%; font-weight: bold; height: 40px;
+        color: {BLACKOUT} !important; border-radius: 0px !important; width: 100%; font-weight: bold;
     }}
     .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 30px {MATRIX_GREEN}; }}
     [data-testid="stHeader"], footer {{ display: none !important; }}
@@ -33,28 +32,36 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. CORREÇÃO DO MOTOR DE EVIDÊNCIA PDF] ---
+# --- [2. MOTOR DE EVIDÊNCIA PDF - FIX] ---
 def generate_node_audit(node_name, cpu):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-    pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
-    pdf.cell(0, 15, f"TECHNICAL EXHIBIT: {node_name}", ln=True, align='C')
-    pdf.ln(10); pdf.set_font("Courier", "", 12)
-    ts = time.strftime('%Y-%m-%d %H:%M:%S')
-    i_hash = hashlib.sha512(f"{node_name}{ts}{cpu}".encode()).hexdigest()[:40]
-    lines = [
-        f"TIMESTAMP: {ts}",
-        f"NODE_PHYSICAL_ID: {platform.node().upper()}",
-        f"OPERATIONAL_SECTOR: {node_name}",
-        f"FEDERAL_INTEGRITY_HASH: {i_hash}",
-        "-"*50,
-        "STATUS: NATIONAL INTEREST WAIVER (NIW) ELIGIBLE",
-        "ARCHITECT: MARCO ANTONIO DO NASCIMENTO"
-    ]
-    for line in lines: pdf.cell(0, 10, line, ln=True)
-    # Retorno compatível com fpdf/fpdf2
-    return pdf.output() if isinstance(pdf.output(), bytes) else pdf.output(dest='S').encode('latin-1', errors='replace')
+    try:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
+        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
+        pdf.cell(0, 15, f"TECHNICAL EXHIBIT: {node_name}", ln=True, align='C')
+        pdf.ln(10); pdf.set_font("Courier", "", 12)
+        ts = time.strftime('%Y-%m-%d %H:%M:%S')
+        i_hash = hashlib.sha512(f"{node_name}{ts}{cpu}".encode()).hexdigest()[:40]
+        
+        lines = [
+            f"TIMESTAMP: {ts}",
+            f"NODE_PHYSICAL_ID: {platform.node().upper()}",
+            f"OPERATIONAL_SECTOR: {node_name}",
+            f"FEDERAL_INTEGRITY_HASH: {i_hash}",
+            "-"*50,
+            "STATUS: NATIONAL INTEREST WAIVER (NIW) ELIGIBLE",
+            "ARCHITECT: MARCO ANTONIO DO NASCIMENTO"
+        ]
+        for line in lines: pdf.cell(0, 10, line, ln=True)
+        
+        # Geração segura de bytes
+        pdf_content = pdf.output(dest='S')
+        if isinstance(pdf_content, str):
+            return pdf_content.encode('latin-1')
+        return pdf_content
+    except Exception:
+        return None
 
 # --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
@@ -64,7 +71,7 @@ def xeon_dashboard():
     # Telemetria Superior
     c1, c2, c3 = st.columns([1, 1.5, 1])
     with c1:
-        st.metric("SYSTEM", "TIER-1")
+        st.metric("STABILITY", "TIER-1")
         st.metric("HOMEOSTASE", f"{100-(cpu_val*0.1):.2f}%")
     with c2:
         gauge_opt = {
@@ -77,14 +84,15 @@ def xeon_dashboard():
         }
         st_echarts(options=gauge_opt, height="250px")
     with c3:
-        st.metric("TARGET", "EB-1A")
-        st.metric("RATE", "$450/HR")
+        st.metric("EB-1A STATUS", "ACTIVE")
+        if st.button("🐞 DEBUGGER"):
+            st.json({"node": platform.node(), "cpu": cpu_val, "os": platform.system(), "pqc": "ENABLED"})
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # Inicialização de Estado
+    # Estado de Ativação
     if 'active_node' not in st.session_state: st.session_state.active_node = None
-    if 'voice_trigger' not in st.session_state: st.session_state.voice_trigger = ""
+    if 'voice_msg' not in st.session_state: st.session_state.voice_msg = ""
 
     # 9 NÓS DE DEFESA
     setores = ["CRIPTO QKD", "DEFESA gRPC", "SIGINT/ELINT", "NIW GOV", "FIBER SHIELD", "NEURAL AUDIT", "SAT LINK", "Q-STORAGE", "QUANTUM SENSING"]
@@ -94,30 +102,30 @@ def xeon_dashboard():
         with cols[i % 3]:
             st.markdown(f"<div class='node-card'><small>NODE 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
             
-            # BOTÃO DE ATIVAÇÃO COM VOZ INTEGRADA
-            if st.button(f"ATIVAR {s}", key=f"act_{i}"):
+            # BOTÃO DE ATIVAÇÃO COM VOX
+            if st.button(f"ATIVAR {s} (VOX)", key=f"act_{i}"):
                 st.session_state.active_node = s
-                st.session_state.voice_trigger = f"Nó {s} ativo. Gerando evidência técnica."
+                st.session_state.voice_msg = f"Nó {s} ativado. Gerando evidência técnica para o Arquiteto Marco Antonio."
                 st.rerun()
 
-            # GERADOR DE DOSSIÊ (Aparece após ativação)
+            # DOWNLOAD DO DOSSIÊ
             if st.session_state.active_node == s:
-                try:
-                    pdf_bytes = generate_node_audit(s, cpu_val)
-                    st.download_button(label=f"📥 DOSSIÊ {s}", data=pdf_bytes, file_name=f"XEON_{s}.pdf", mime="application/pdf", key=f"dl_{i}")
-                except Exception as e:
-                    st.error("Erro no motor PDF. Recalibrando...")
+                pdf_bytes = generate_node_audit(s, cpu_val)
+                if pdf_bytes:
+                    st.download_button(label=f"📥 BAIXAR DOSSIÊ {s}", data=pdf_bytes, file_name=f"XEON_{s}.pdf", mime="application/pdf", key=f"dl_{i}")
+                else:
+                    st.error("Erro no motor PDF.")
 
-    # EXECUÇÃO DA VOZ (Fora do loop para evitar loops infinitos)
-    if st.session_state.voice_trigger:
+    # DISPARO DA VOZ
+    if st.session_state.voice_msg:
         components.html(f"""
             <script>
-            var msg = new SpeechSynthesisUtterance('{st.session_state.voice_trigger}');
+            var msg = new SpeechSynthesisUtterance('{st.session_state.voice_msg}');
             msg.lang = 'pt-BR';
             window.speechSynthesis.speak(msg);
             </script>
         """, height=0)
-        st.session_state.voice_trigger = "" # Reset após falar
+        st.session_state.voice_msg = ""
 
 # --- [4. FINALIZAÇÃO] ---
 st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN}; letter-spacing: 5px;'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
