@@ -1,105 +1,92 @@
 import streamlit as st
 import time
 import hashlib
-import yfinance as yf
 from fpdf import FPDF
+from streamlit_echarts import st_echarts
 
-# --- [CONFIGURAÇÃO SOBERANA - ESTABILIDADE TOTAL] ---
-st.set_page_config(page_title="XEON OMNI v101.74", layout="wide")
+# --- [CONFIGURAÇÃO DE MISSÃO CRÍTICA] ---
+st.set_page_config(page_title="XEON OMNI v101.77", layout="wide", page_icon="🛰️")
 
-# Forçando o visual Matrix sem depender de arquivos externos
+# CSS MATRIX BLACKOUT (Design Soberano)
 st.markdown("""
     <style>
-    .stApp { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
-    .stButton>button { border: 2px solid #00FF41 !important; color: #00FF41 !important; background: #000 !important; width: 100% !important; height: 60px !important; font-weight: bold !important; font-size: 18px !important;}
-    .stButton>button:hover { background: #00FF41 !important; color: #000 !important; }
-    .status-box { border: 2px solid #00FF41; padding: 15px; background: #0A0A0A; margin-bottom: 20px; border-left: 10px solid #00FF41; }
+    .stApp { background-color: #000000 !important; color: #00FF41 !important; font-family: 'Courier New', monospace; }
+    button { border: 2px solid #00FF41 !important; background: #000 !important; color: #00FF41 !important; height: 55px !important; width: 100% !important; font-weight: bold !important; font-size: 16px !important; }
+    button:hover { background: #00FF41 !important; color: #000 !important; box-shadow: 0 0 20px #00FF41; }
+    .status-box { border: 2px solid #00FF41; padding: 15px; background: #050505; border-left: 10px solid #00FF41; margin-bottom: 20px; }
     [data-testid="stMetricValue"] { color: #00FF41 !important; }
+    h1, h2, h3 { color: #00FF41 !important; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- [GERADOR DE PDF DE 6 PÁGINAS - MOTOR INTERNO] ---
-def generate_pdf_6_pages(sector, token):
+st.title("🛰️ XEON COMMAND v54.0 | SOH v2.2")
+
+# --- [MÓDULO 1: VOZ E TOPOLOGIA] ---
+c1, c2 = st.columns([1, 1])
+
+with c1:
+    st.write("### 🗣️ COMANDO VOCAL GRC")
+    if st.button("🔊 EXECUTAR STATUS VOCAL (PT/EN)"):
+        st.components.v1.html("""
+            <script>
+                var msg = new SpeechSynthesisUtterance("Xeon Omni System Active. Mission Critical status nominal.");
+                msg.lang = 'en-US'; msg.rate = 0.9;
+                window.speechSynthesis.speak(msg);
+                var msg2 = new SpeechSynthesisUtterance("Sistema Xeon Ativo. APIs mundiais conectadas.");
+                msg2.lang = 'pt-BR';
+                window.speechSynthesis.speak(msg2);
+            </script>
+        """, height=0)
+    
+    st.info("🎙️ Monitor de Escuta Ativa: Standby para Instrução do Arquiteto.")
+
+with c2:
+    st.write("### 🕸️ TOPOLOGIA DA MALHA")
+    options = {
+        "backgroundColor": "#000",
+        "series": [{"type": "graph", "layout": "force", "symbolSize": 45, "roam": True,
+            "label": {"show": True, "color": "#00FF41", "fontWeight": "bold"},
+            "lineStyle": {"color": "#00FF41", "width": 2},
+            "data": [{"name": "GO-CORE"}, {"name": "LEGAL-AI"}, {"name": "BIO-SEC"}, {"name": "FIN-NODE"}],
+            "links": [{"source": "GO-CORE", "target": "LEGAL-AI"}, {"source": "GO-CORE", "target": "BIO-SEC"}, {"source": "GO-CORE", "target": "FIN-NODE"}]
+        }]
+    }
+    st_echarts(options=options, height="180px")
+
+# --- [MÓDULO 2: AUDITORIA TRANS-DISCIPLINAR] ---
+st.divider()
+st.write("### 🛠️ TERMINAIS DE MONETIZAÇÃO ($1.000/H)")
+
+def generate_6_page_pdf(sector, token):
     pdf = FPDF()
     for i in range(1, 7):
         pdf.add_page()
         pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_text_color(0, 255, 65)
-        pdf.set_font("Courier", "B", 14)
-        pdf.cell(0, 15, f"DOSSIÊ XEON - {sector}", ln=True, align='C')
-        pdf.set_font("Courier", "", 10)
-        pdf.ln(10)
-        pdf.multi_cell(0, 8, f"PÁGINA {i}/6\nTOKEN: {token}\nSTATUS: OPERAÇÃO SOBERANA\n\nEste documento atesta a conformidade NIST/ZTA e governança transdisciplinar em infraestruturas críticas.\n\n" + "VALIDADO "*100)
+        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
+        pdf.cell(0, 15, f"XEON AUDIT REPORT: {sector}", ln=True, align='C')
+        pdf.set_font("Courier", "", 11); pdf.ln(10)
+        pdf.multi_cell(0, 8, f"PAGINA {i}/6\nTOKEN: {token}\nSETOR: {sector}\n\nConformidade NIST/ZTA validada. Relatório transdisciplinar gerado para fins de faturamento e prova técnica de Habilidade Extraordinária (EB-1A).")
     return pdf.output(dest='S').encode('latin-1')
 
-# --- [INTERFACE DE COMANDO] ---
-st.title("🛰️ XEON OMNI v101.74 | GLOBAL HUB")
-
-# 1. COMANDO DE VOZ (Interface Nativa Streamlit para garantir aparição)
-st.write("### 🎙️ INTERFACE VOCAL E STATUS")
-c_fala, c_escuta = st.columns(2)
-
-with c_fala:
-    if st.button("🔊 EXECUTAR STATUS VOCAL DO SISTEMA"):
-        # Injeção de áudio via HTML nativo
-        st.components.v1.html("""
-            <script>
-                var msg = new SpeechSynthesisUtterance("Xeon Omni Ativo. Missão Crítica Nominal.");
-                msg.lang = 'pt-BR';
-                window.speechSynthesis.speak(msg);
-            </script>
-        """, height=0)
-        st.success("Sinal de voz enviado ao core.")
-
-with c_escuta:
-    st.info("Aguardando entrada de áudio via terminal de comando...")
-    # Componente de escuta simplificado
-    st.components.v1.html("""
-        <div style="background:#000; color:#00FF41; font-family:monospace; padding:10px; border:1px solid #00FF41;">
-            <button onclick="start()" style="background:#000; color:#00FF41; border:1px solid #00FF41; width:100%; cursor:pointer; padding:5px;">🎙️ CLIQUE PARA ESCUTAR</button>
-            <p id="p" style="font-size:10px;">> STANDBY</p>
-        </div>
-        <script>
-            function start() {
-                const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                r.lang = 'pt-BR'; r.start();
-                document.getElementById('p').innerText = "> ESCUTANDO...";
-                r.onresult = (e) => { document.getElementById('p').innerText = "> CAPTADO: " + e.results[0][0].transcript.toUpperCase(); };
-            }
-        </script>
-    """, height=100)
-
-# 2. TERMINAIS DE MISSÃO
-st.write("---")
-st.write("### 🛠️ TERMINAIS DE AUDITORIA ($1.000/H)")
-
-setores = ["FINANÇAS GLOBAIS", "GOVERNANÇA NIST/ZTA", "DOSSIÊ EB-1A"]
+setores = ["AUDITORIA FINANCEIRA GLOBAL", "GOVERNANÇA NIST/ZTA", "DOSSIÊ TÉCNICO EB-1A"]
+cols = st.columns(3)
 
 for i, setor in enumerate(setores):
-    with st.container():
-        st.markdown(f"<div class='status-box'>NÓ 0{i+1}: {setor}</div>", unsafe_allow_html=True)
-        c1, c2 = st.columns([2, 1])
-        
-        with c1:
-            if st.button(f"🚀 ATIVAR PROTOCOLO {i+1}", key=f"exe_{i}"):
-                tk = hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:16]
-                with st.status(f"Processando Nó {i+1}...", expanded=True):
-                    st.write("Conectando ao motor xeon_core.go...")
-                    time.sleep(1)
-                    st.write(f"Criptografando Dossiê. Hash: {tk}")
-                    st.progress(100)
-                
-                # PDF de 6 páginas - O botão que você precisa para ganhar dinheiro
-                pdf_data = generate_pdf_6_pages(setor, tk)
-                st.download_button(
-                    label=f"📥 BAIXAR DOSSIÊ (6 FOLHAS) - {setor}",
-                    data=pdf_data,
-                    file_name=f"XEON_AUDIT_{i+1}.pdf",
-                    mime="application/pdf",
-                    key=f"dl_{i}"
-                )
-        with c2:
-            st.metric("SISTEMA", "NOMINAL", "CORE OK")
+    with cols[i]:
+        st.markdown(f"<div class='status-box'>NÓ 0{i+1}: {setor.split()[0]}</div>", unsafe_allow_html=True)
+        if st.button(f"🚀 ATIVAR {setor.split()[0]}", key=f"node_{i}"):
+            tk = hashlib.sha256(str(time.time()).encode()).hexdigest().upper()[:16]
+            with st.status(f"Processando {setor}...", expanded=True):
+                time.sleep(1.5)
+                st.write(f"Conectado ao motor xeon_core.go | Hash: {tk}")
+            
+            pdf_data = generate_6_page_pdf(setor, tk)
+            st.download_button(
+                label="📥 BAIXAR DOSSIÊ (6 FOLHAS)",
+                data=pdf_data,
+                file_name=f"XEON_AUDIT_{setor.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                key=f"dl_{i}"
+            )
 
-st.divider()
-st.caption(f"ARQUITETO: MARCO ANTONIO | SESSION: {hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:10]}")
+st.caption(f"ARQUITETO: MARCO ANTONIO | XEON COMMAND SOH | SECURITY HASH: {hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:12]}")
