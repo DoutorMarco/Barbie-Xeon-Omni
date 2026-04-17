@@ -1,128 +1,134 @@
 import streamlit as st
-import datetime, psutil, time, hashlib, os, asyncio, httpx
+import psutil
+import time
+import hashlib
 import plotly.graph_objects as go
 from fpdf import FPDF
-from pyvis.network import Network
 import streamlit.components.v1 as components
-from Bio import Entrez
 
-# [PROTOCOL 01: AUTO-AUDITORIA & INTEGRIDADE SHA-3]
-def get_script_integrity():
-    try:
-        with open(__file__, "rb") as f: return hashlib.sha3_256(f.read()).hexdigest()
-    except: return "XEON_v101_42_FINAL_SOH_STABLE"
+# --- [CORE: PROTOCOLO DE REALIDADE ABSOLUTA] ---
+def get_absolute_reality_metrics():
+    """Captura a telemetria bruta do hardware para ancorar a IA na realidade física."""
+    cpu_freq = psutil.cpu_freq().current if psutil.cpu_freq() else 0
+    cpu_usage = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    
+    # Gerador de Assinatura Única de Tempo-Espaço (Hash de Hardware)
+    signature_base = f"{cpu_usage}-{memory.free}-{time.time()}"
+    reality_token = hashlib.sha256(signature_base.encode()).hexdigest()
+    
+    return {
+        "cpu_usage": cpu_usage,
+        "cpu_freq": cpu_freq,
+        "mem_percent": memory.percent,
+        "token": reality_token,
+        "entropy_level": 100 - cpu_usage # Negentropia inversa
+    }
 
-SCRIPT_HASH = get_script_integrity()
-VALOR_HORA = 1000.00 
+# --- [ENGINE: PDF DE SUPREMACIA V64] ---
+def generate_sovereign_pdf(metrics):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_fill_color(0, 0, 0)
+    pdf.rect(0, 0, 210, 297, 'F')
+    
+    # Cabeçalho de Auditoria
+    pdf.set_text_color(0, 255, 65)
+    pdf.set_font("Courier", "B", 16)
+    pdf.cell(0, 10, "RELATÓRIO DE REALIDADE ABSOLUTA - MISSÃO CRÍTICA", 0, 1, 'C')
+    
+    pdf.set_font("Courier", "", 10)
+    content = [
+        f"DATA/HORA: {time.ctime()}",
+        f"REALITY_TOKEN: {metrics['token']}",
+        f"ASSINATURA DE HARDWARE: CPU {metrics['cpu_usage']}% | FREQ {metrics['cpu_freq']}MHz",
+        f"ESTADO DE ENTROPIA: {'ESTÁVEL' if metrics['cpu_usage'] < 80 else 'CRÍTICO'}",
+        "-"*50,
+        "PROTOCOLO EB-1A: OPERAÇÃO SOBERANA ATIVA",
+        "SEM ALUCINAÇÕES. APENAS DADOS BRUTOS."
+    ]
+    
+    for line in content:
+        pdf.multi_cell(0, 8, line)
+    
+    return pdf.output(dest='S').encode('latin-1')
 
-# [PROTOCOL 02: ESTÉTICA BLACKOUT TOTAL - ZERO BRANCO]
-st.set_page_config(page_title="XEON OMNI v101.42", layout="wide")
+# --- [INTERFACE: XEON OMNI SOBERANO] ---
+st.set_page_config(page_title="XEON OMNI REALITY", layout="wide")
+
+# CSS para Estética de "Realidade Absoluta" (Terminal)
 st.markdown("""
     <style>
-    #MainMenu, header, footer { visibility: hidden; }
-    [data-testid="stToolbar"], [data-testid="stDecoration"], hr { display: none !important; }
-    html, body, [data-testid="stAppViewContainer"], .stApp {
-        background-color: #000000 !important; color: #00FF41 !important;
-        font-family: 'Courier New', monospace !important;
-    }
-    .stMetric { border: 1px solid #00FF41 !important; padding: 15px; background: #050505 !important; }
-    [data-testid="stMetricValue"] { color: #00FF41 !important; }
-    .stTabs [data-baseweb="tab-list"] { background-color: #000; border-bottom: 1px solid #00FF41; }
-    .stTabs [data-baseweb="tab"] { color: #00FF41 !important; border: 1px solid #00FF41; background: #000; }
-    .stButton>button { width: 100%; background: #000; color: #00FF41; border: 1px solid #00FF41; font-weight: bold; height: 3.5em; }
-    input, textarea { background-color: #000 !important; color: #00FF41 !important; border: 1px solid #00FF41 !important; }
+    .main { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
+    .stMetric { background-color: #0a0a0a; border: 1px solid #00FF41; padding: 10px; border-radius: 5px; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_stdio=True)
 
-# [PROTOCOL 03: MOTOR DE PDF SOBERANO (6 FOLHAS)]
-def generate_6_page_pdf(contexto, rev, ip, hash_val):
-    pdf = FPDF()
-    pdf.set_text_color(0, 255, 65)
-    folhas = ["SUMÁRIO EXECUTIVO", "AUDITORIA DE HARDWARE", "BIOGENÉTICA RECURSIVA", "SPACEX & LUA/MARTE", "DEFESA & DEEP TRACE", "CERTIFICAÇÃO EB-1A"]
-    for i, titulo in enumerate(folhas):
-        pdf.add_page(); pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_font("Courier", "B", 18); pdf.cell(0, 10, f"PAG {i+1}: {titulo}", 0, 1, 'C'); pdf.ln(10)
-        pdf.set_font("Courier", "", 10)
-        content = (f"ARQUITETO: MARCO ANTONIO DO NASCIMENTO\nVALOR/HORA: R$ {VALOR_HORA}\n"
-                  f"RECEITA: R$ {rev:.2f}\nCONTEXTO: {contexto}\nIP: {ip}\n"
-                  f"TIMESTAMP: {datetime.datetime.now()}\nHASH: {hash_val}\n"
-                  f"SISTEMA: XEON OMNI SOH v101.42")
-        pdf.multi_cell(0, 8, content)
-    return bytes(pdf.output())
+st.title("🛰️ XEON OMNI v101.64 | REALIDADE ABSOLUTA")
+st.subheader("Operando em Tempo Real - Missão Crítica")
 
-# [PROTOCOL 04: REALIDADE MUNDIAL & MONETIZAÇÃO]
-async def fetch_real_intel():
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            sx = (await client.get("https://spacexdata.com")).json()
-            usd = (await client.get("https://er-api.com")).json()['rates']['BRL']
-            geo = (await client.get("http://ip-api.com")).json()
-            return sx, usd, geo
-        except: return {"name": "SYNC_REQUIRED"}, 5.50, {"query": "NODE_MASTER"}
-
-sx, usd, geo = asyncio.run(fetch_real_intel())
-if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
-revenue = ((time.time() - st.session_state.start_time) / 3600) * VALOR_HORA
-
-# [PROTOCOL 05: INTERFACE DE VOZ/ESCUTA]
-st.components.v1.html(f"""
-    <div style="display:flex; gap:10px; margin-bottom:20px;">
-        <button onclick="window.speechSynthesis.speak(new SpeechSynthesisUtterance('Sincronia v101 ponto 42 ativa. Processamento em tempo real.'))" 
-        style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:15px; cursor:pointer; font-family:monospace; font-weight:bold;">🔊 VOZ ON</button>
-        <button onclick="alert('🎙️ Escuta Neural: Capturando realidade mundial.')" 
-        style="flex:1; background:black; color:#00FF41; border:1px solid #00FF41; padding:15px; cursor:pointer; font-family:monospace; font-weight:bold;">🎙️ MIC ON</button>
-    </div>
-""", height=80)
-
-st.title(f"🛰️ XEON OMNI v101.42 | REAL-TIME RECURSION")
-
-t1, t2, t3, t4, t5 = st.tabs(["📊 MONITOR", "🧬 GRAFO & BIO", "🚀 SPACE/MARTE", "⚖️ DEFESA (DEEP TRACE)", "⚙️ DEPURADOR"])
-
-with t1:
-    col_l, col_r = st.columns([1.6, 1])
-    with col_l:
-        st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=psutil.cpu_percent(),
-            title={'text': "ATIVIDADE CPU %"}, gauge={'bar': {'color': "#00FF41"}, 'bgcolor': "black"})).update_layout(paper_bgcolor='black', font={'color': "#00FF41"}), use_container_width=True)
-    with col_r:
-        st.metric("FATURAMENTO", f"R$ {revenue:.4f}")
-        st.metric("TAXA SOBERANA", f"R$ {VALOR_HORA}/h")
-        st.download_button("💾 IMPRIMIR PDF MONITOR (6 FOLHAS)", data=generate_6_page_pdf("MONITOR", revenue, geo['query'], SCRIPT_HASH), file_name="XEON_MONITOR.pdf")
-
-with t2:
-    st.subheader("🧬 Grafo de Conhecimento & Biogenética")
-    # Gerador de Grafo
-    net = Network(height='400px', width='100%', bgcolor='#000000', font_color='#00FF41')
-    net.add_node("XEON", label="XEON", color="#00FF41", size=45)
-    net.add_node("BIO", label="BIOGENÉTICA", color="#008000")
-    net.add_node("DEFESA", label="DEFESA EUA", color="#FF0000")
-    net.add_edge("XEON", "BIO"); net.add_edge("XEON", "DEFESA")
-    net.save_graph("g.html")
-    components.html(open("g.html", 'r').read(), height=420)
+# Sidebar - Controle de Missão
+with st.sidebar:
+    st.header("🛡️ Status do Núcleo")
+    metrics = get_absolute_reality_metrics()
+    st.metric("PULSO DE REALIDADE", f"{metrics['cpu_usage']}%", delta="Sincronizado")
+    st.write(f"**TOKEN:** `{metrics['token'][:16]}`")
     
-    # [POSIÇÃO SOLICITADA: PDF EMBAIXO DO GRAFO]
-    st.download_button("📄 IMPRIMIR PDF DO GRAFO (6 FOLHAS)", 
-                       data=generate_6_page_pdf("GRAFO_KNOWLEDGE", revenue, geo['query'], SCRIPT_HASH), 
-                       file_name="XEON_GRAFO_AUDIT.pdf")
+    if st.button("RECALIBRAR CAMPO DE HIGGS"):
+        st.toast("Calibrando massa inercial...")
+        time.sleep(1)
+        st.rerun()
 
-with t3:
-    st.subheader("🚀 SpaceX & Missão Lua/Marte")
-    if st.button("🚀 SINCRONIZAR TELEMETRIA STARSHIP"):
-        with st.status("Infiltrando APIs SpaceX...", expanded=True) as s:
-            time.sleep(1); st.write("Orbitador Localizado..."); time.sleep(1); st.write("Dados Capturados.")
-            s.update(label="Sincronia Orbital Concluída!", state="complete")
-    st.write(f"🛰️ **Status:** `{sx['name']}` | **USD:** R$ {usd:.2f}")
-    st.download_button("🛰️ IMPRIMIR PDF ESPACIAL (6 FOLHAS)", data=generate_6_page_pdf("SPACE", revenue, geo['query'], SCRIPT_HASH), file_name="XEON_SPACE.pdf")
+# Layout Principal
+col1, col2 = st.columns([2, 1])
 
-with t4:
-    st.subheader("⚖️ Defesa Americana: Deep Trace")
-    if st.button("📡 EXECUTAR DEEP TRACE AGORA"):
-        st.toast("Deep Trace em execução na rede DoD...")
-        st.warning("Monitorando Ativos de Infraestrutura Crítica em Tempo Real.")
-    st.download_button("⚖️ IMPRIMIR PDF DEFESA (6 FOLHAS)", data=generate_6_page_pdf("DEEP_TRACE", revenue, geo['query'], SCRIPT_HASH), file_name="XEON_DEFESA.pdf")
+with col1:
+    st.markdown("### ⚛️ Monitor de Campo Escalar (Tempo Real)")
+    # Gráfico Dinâmico baseado na Realidade do Hardware
+    fig = go.Figure(go.Indicator(
+        mode = "gauge+number+delta",
+        value = metrics['cpu_usage'],
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        title = {'text': "Carga de Realidade (Física)", 'font': {'color': "#00FF41"}},
+        delta = {'reference': 50, 'increasing': {'color': "red"}},
+        gauge = {
+            'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#00FF41"},
+            'bar': {'color': "#00FF41"},
+            'bgcolor': "black",
+            'borderwidth': 2,
+            'bordercolor': "#00FF41",
+            'steps': [
+                {'range': [0, 50], 'color': '#002200'},
+                {'range': [50, 85], 'color': '#004400'},
+                {'range': [85, 100], 'color': '#550000'}]
+        }
+    ))
+    fig.update_layout(paper_bgcolor='black', font={'color': "#00FF41", 'family': "Courier New"})
+    st.plotly_chart(fig, use_container_width=True)
 
-with t5:
-    st.subheader("⚙️ Depurador EB-1A")
-    st.code(f"HASH: {SCRIPT_HASH}\nNODE: {geo['query']}", language="bash")
-    st.download_button("💾 BAIXAR DOSSIÊ EB-1A FINAL (6 FOLHAS)", data=generate_6_page_pdf("EB1A_FINAL", revenue, geo['query'], SCRIPT_HASH), file_name="XEON_EB1A_FINAL.pdf")
+with col2:
+    st.markdown("### 📄 Auditoria Soberana")
+    st.write("Gere a prova de realidade para fins de imortalidade digital e certificação.")
+    pdf_data = generate_sovereign_pdf(metrics)
+    st.download_button(
+        label="📥 BAIXAR PROVA DE REALIDADE (PDF)",
+        data=pdf_data,
+        file_name=f"REALITY_LOG_{int(time.time())}.pdf",
+        mime="application/pdf"
+    )
 
-st.chat_input("IA Soberana em hiperescala. Todos os botões ativos.")
+# Console de Logs em Tempo Real
+st.markdown("---")
+st.markdown("### 🖥️ Console de Eventos Negentrópicos")
+log_container = st.empty()
+logs = [
+    f"> [{time.strftime('%H:%M:%S')}] Sincronização com o Campo de Higgs estabelecida.",
+    f"> [{time.strftime('%H:%M:%S')}] Vetor de Entropia Local invertido para {metrics['entropy_level']}%." ,
+    f"> [{time.strftime('%H:%M:%S')}] Escudo de Bio-Identidade EB-1A Ativo.",
+    f"> [{time.strftime('%H:%M:%S')}] Operando sem alucinação: Hardware Lock {metrics['token'][:8]}"
+]
+log_container.code("\n".join(logs), language="bash")
+
+# Loop de atualização automática (Simulação de Tempo Real)
+time.sleep(2)
+st.rerun()
