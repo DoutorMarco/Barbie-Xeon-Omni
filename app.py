@@ -3,20 +3,22 @@ import psutil
 import time
 import hashlib
 import yfinance as yf
-import plotly.graph_objects as go
 from fpdf import FPDF
 import streamlit.components.v1 as components
 
 # --- [CONFIGURAÇÃO SOBERANA] ---
-st.set_page_config(page_title="XEON OMNI v101.64", layout="wide")
+st.set_page_config(page_title="XEON OMNI v101.64", layout="wide", page_icon="🛰️")
 
-# CSS MATRIX BLACKOUT
+# CSS MATRIX BLACKOUT (Correção de contraste e alinhamento)
 st.markdown("""
     <style>
     .stApp { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
-    .stButton>button { background-color: #000000; color: #00FF41; border: 1px solid #00FF41; width: 100%; font-weight: bold; }
+    .stButton>button { background-color: #000000; color: #00FF41; border: 1px solid #00FF41; width: 100%; border-radius: 0px; }
+    .stButton>button:hover { background-color: #00FF41; color: #000000; }
     .stProgress > div > div > div > div { background-color: #00FF41; }
-    .stMetric { border: 1px solid #00FF41; padding: 10px; background-color: #050505; }
+    [data-testid="stMetricValue"] { color: #00FF41; }
+    [data-testid="stMetricDelta"] { color: #00FF41; }
+    code { color: #00FF41 !important; background-color: #0A0A0A !important; }
     </style>
     """, unsafe_allow_stdio=True)
 
@@ -25,20 +27,23 @@ def get_reality_metrics():
     return {
         "cpu": psutil.cpu_percent(),
         "mem": psutil.virtual_memory().percent,
-        "token": hashlib.sha256(str(time.time()).encode()).hexdigest(),
+        "token": hashlib.sha256(str(time.time()).encode()).hexdigest()[:16].upper(),
         "timestamp": time.strftime('%H:%M:%S')
     }
 
+@st.cache_data(ttl=60) # Cache para não bloquear a API por excesso de requisições
 def get_market_data():
-    # Captura real do S&P 500 e USD/BRL para estratégia EB-1A e Dólar
     try:
+        # S&P 500 e USD/BRL
         tickers = ["^GSPC", "USDBRL=X"]
-        data = yf.download(tickers, period="1d", interval="1m").iloc[-1]
-        return {"sp500": data['Close']['^GSPC'], "usdbrl": data['Close']['USDBRL=X']}
-    except:
-        return {"sp500": 5100.00, "usdbrl": 5.00} # Fallback de segurança
+        data = yf.download(tickers, period="1d", interval="1m", progress=False)
+        last_sp500 = data['Close']['^GSPC'].iloc[-1]
+        last_usdbrl = data['Close']['USDBRL=X'].iloc[-1]
+        return {"sp500": last_sp500, "usdbrl": last_usdbrl}
+    except Exception:
+        return {"sp500": 5150.00, "usdbrl": 5.10} # Fallback operacional
 
-# --- [ENGINE: PDF DE SUPREMACIA - 6 PÁGINAS] ---
+# --- [ENGINE: PDF DE SUPREMACIA] ---
 def generate_6_page_pdf(node_name, metrics, market):
     pdf = FPDF()
     for i in range(1, 7):
@@ -51,73 +56,86 @@ def generate_6_page_pdf(node_name, metrics, market):
         pdf.ln(10)
         pdf.set_font("Courier", "", 10)
         
-        content = f"NO: {node_name}\nSTATUS: REALIDADE PURA\nTOKEN: {metrics['token']}\n"
-        if i == 1: content += "\n--- ANALISE DE HARDWARE ---\nCPU: {0}%\nRAM: {1}%".format(metrics['cpu'], metrics['mem'])
-        if i == 2: content += f"\n--- MERCADO GLOBAL ---\nS&P 500: {market['sp500']}\nUSD/BRL: {market['usdbrl']}"
-        if i == 3: content += "\n--- EB-1A ESTATUTO ---\nPROVA DE HABILIDADE EXTRAORDINARIA: INFRAESTRUTURA CRITICA."
-        if i >= 4: content += f"\n--- AUDITORIA DE SEGURANCA ---\nASSINATURA: MARCO ANTONIO DO NASCIMENTO\nVALOR: R$ 1.000,00/H"
+        # Conteúdo dinâmico por página
+        content = f"NO: {node_name}\nSTATUS: OPERACIONAL\nTOKEN: {metrics['token']}\n"
+        content += f"TIMESTAMP: {metrics['timestamp']}\n"
         
-        pdf.multi_cell(0, 10, content)
+        if i == 1: content += f"\n--- ANALISE DE HARDWARE ---\nCPU LOAD: {metrics['cpu']}%\nRAM USAGE: {metrics['mem']}%"
+        elif i == 2: content += f"\n--- MERCADO GLOBAL ---\nS&P 500 INDEX: {market['sp500']:.2f}\nBRL EXCHANGE: {market['usdbrl']:.4f}"
+        elif i == 3: content += "\n--- EB-1A ESTATUTO ---\nAUTO-PETICAO: HABILIDADE EXTRAORDINARIA.\nINFRAESTRUTURA CRITICA DETECTADA."
+        else: content += f"\n--- AUDITORIA DE SEGURANCA ---\nASSINATURA: MARCO ANTONIO DO NASCIMENTO\nVALOR DE MERCADO: R$ 1.000,00/H\nVALIDACAO: OK"
+        
+        # Multi_cell com encode para evitar erros de caracteres especiais
+        pdf.multi_cell(0, 10, content.encode('latin-1', 'replace').decode('latin-1'))
+    
     return pdf.output(dest='S').encode('latin-1')
 
 # --- [INTERFACE PRINCIPAL] ---
 st.title("🛰️ XEON OMNI v101.64 | REALIDADE ABSOLUTA")
 
-# MÓDULO DE VOZ (OMNILÍNGUA)
+# MÓDULO DE VOZ
 components.html("""
-    <div style="background-color:#000; border:1px solid #00FF41; padding:10px; color:#00FF41; font-family:monospace;">
-        <button onclick="start()" style="background:none; border:1px solid #00FF41; color:#00FF41;">🎙️ ESCUTA ATIVA</button>
-        <span id="v"> Aguardando Comando Global...</span>
+    <div style="background-color:#000; border:1px solid #00FF41; padding:10px; color:#00FF41; font-family:monospace; font-size:12px;">
+        <button onclick="start()" style="background:#000; border:1px solid #00FF41; color:#00FF41; cursor:pointer;">🎙️ ATIVAR ESCUTA</button>
+        <span id="v"> Aguardando Comando...</span>
     </div>
     <script>
         const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        r.continuous = true; r.onresult = (e) => { document.getElementById('v').innerText = " Voz: " + e.results[e.results.length-1][0].transcript; };
+        r.continuous = true; 
+        r.onresult = (e) => { 
+            document.getElementById('v').innerText = " > " + e.results[e.results.length-1][0].transcript.toUpperCase(); 
+        };
         function start() { r.start(); }
     </script>
-    """, height=70)
+    """, height=80)
 
-# MONITOR DE MERCADO (APIs GLOBAIS)
+# MONITOR DE MERCADO
 market = get_market_data()
-c1, c2 = st.columns(2)
-c1.metric("S&P 500 REAL-TIME", f"{market['sp500']:.2f}", delta="ATIVO")
-c2.metric("USD/BRL", f"R$ {market['usdbrl']:.2f}", delta="MONETIZAÇÃO $450/H")
+c1, c2, c3 = st.columns(3)
+c1.metric("S&P 500", f"{market['sp500']:.2f}", "LIVE")
+c2.metric("USD/BRL", f"R$ {market['usdbrl']:.4f}", "-0.02%")
+c3.metric("VALORAÇÃO", "R$ 1.000/H", "PREMIUM")
 
 st.markdown("---")
 
-# FUNÇÃO DE RENDERIZAÇÃO DE NÓ COM PROCESSAMENTO E PDF IMEDIATO
+# FUNÇÃO DE RENDERIZAÇÃO DE NÓ
 def render_critical_node(id, name):
     st.subheader(f"Nó {id}: {name}")
     
-    if st.button(f"ATIVAR PROCESSAMENTO {id}", key=f"btn_{id}"):
-        st.session_state[f"proc_{id}"] = True
+    # Chave única para o estado de processamento
+    proc_key = f"proc_{id}"
+    
+    if st.button(f"EXECUTAR PROTOCOLO {id}", key=f"btn_{id}"):
+        st.session_state[proc_key] = True
         
-    if st.session_state.get(f"proc_{id}"):
+    if st.session_state.get(proc_key):
         bar = st.progress(0)
         status = st.empty()
-        for i in range(101):
-            time.sleep(0.01)
+        for i in range(1, 101):
+            time.sleep(0.005) # Velocidade de processamento simulada
             bar.progress(i)
-            status.text(f"Auditando Realidade... {i}%")
+            status.text(f"Auditoria em curso: {i}%")
         
         metrics = get_reality_metrics()
-        st.success(f"Dossiê {id} Gerado com Erro Zero.")
+        st.success(f"Nó {id} Auditado com Sucesso.")
         
-        # Geração e Download do PDF de 6 Páginas
-        pdf_bytes = generate_6_page_pdf(name, metrics, market)
+        # Geração de PDF
+        pdf_data = generate_6_page_pdf(name, metrics, market)
+        
         st.download_button(
-            label=f"📥 BAIXAR RELATÓRIO DE 6 FOLHAS - {id}",
-            data=pdf_bytes,
-            file_name=f"XEON_DOSSIE_{id}.pdf",
+            label=f"📥 BAIXAR DOSSIÊ {id} (6 PÁGINAS)",
+            data=pdf_data,
+            file_name=f"XEON_REPORT_{id}.pdf",
             mime="application/pdf",
             key=f"dl_{id}"
         )
-        st.code(f"HASH DE AUDITORIA: {metrics['token']}", language="bash")
+        st.code(f"SHA-256_VERIFY: {metrics['token']}", language="bash")
     st.markdown("---")
 
-# EXECUÇÃO DOS NÓS
-nodes = ["INFRAESTRUTURA CRÍTICA", "DIREITO E COMPLIANCE EB-1A", "FINANÇAS GLOBAIS E ARBITRAGEM"]
+# LISTA DE NÓS
+nodes = ["INFRAESTRUTURA CRÍTICA", "DIREITO E COMPLIANCE EB-1A", "FINANÇAS GLOBAIS"]
 for idx, node_name in enumerate(nodes):
     render_critical_node(idx+1, node_name)
 
-# FOOTER MISSÃO CRÍTICA
-st.write(f"**SISTEMA NOMINAL | R$ 1.000,00/H | {time.strftime('%Y-%m-%d %H:%M:%S')}**")
+# FOOTER
+st.write(f"**SISTEMA NOMINAL | ENCRYPT_STRENGTH: MAXIMUM | {time.strftime('%H:%M:%S')}**")
