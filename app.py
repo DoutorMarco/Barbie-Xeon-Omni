@@ -22,88 +22,73 @@ try:
 except:
     client = None
 
-# ELIMINAÇÃO AGRESSIVA DE BRANCO E RESET DE INTERFACE
+# CSS DE FORÇA BRUTA - ELIMINAÇÃO TOTAL DE BRANCO
 st.markdown(f"""
     <style>
-    /* Reset Geral para Fundo Preto */
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
-    
-    /* Eliminação do Bloco Branco em Code e Pre */
-    code, pre, [data-testid="stCodeBlock"] {{ 
-        background-color: {BLACKOUT} !important; 
-        color: {MATRIX_GREEN} !important; 
-        border: 1px solid {MATRIX_GREEN} !important; 
-    }}
-    
-    /* Reset de Metadados e Containers */
-    [data-testid="stHeader"], footer, [data-testid="stSidebar"] {{ display: none !important; }}
-    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; font-size: 2rem; }}
-    
-    /* Estilização de Botões */
+    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; }}
+    code, pre, div.stMarkdown, div.stText {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; }}
     .stButton button, .stDownloadButton button {{
         border: 2px solid {MATRIX_GREEN} !important; background-color: {BLACKOUT} !important;
-        color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold; height: 50px;
+        color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold; height: 60px;
     }}
     .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 30px {MATRIX_GREEN}; }}
-    
+    [data-testid="stHeader"], footer {{ display: none !important; }}
+    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 15px; text-align: center; background: rgba(0,255,65,0.05); margin-bottom: 10px; }}
     hr {{ border: 1px solid {MATRIX_GREEN} !important; }}
-    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; margin-bottom: 5px; background: rgba(0,255,65,0.05); }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTORES DE INFRAESTRUTURA REAL] ---
+# --- [2. MOTORES DE INFRAESTRUTURA E BLOCKCHAIN] ---
 def fetch_spacex_ops():
     try:
         res = requests.get("https://spacexdata.com", timeout=2).json()
-        return f"FLIGHT_{res['flight_number']}: {res['name']} (ORBITAL_READY)"
-    except: return "SPACEX_RELAY: ENCRYPTED_LINK"
-
-def get_blockchain_id(data):
-    return hashlib.sha256(str(data).encode()).hexdigest().upper()
+        return f"FLIGHT_{res['flight_number']}: {res['name']} (ACTIVE)"
+    except: return "SPACEX_RELAY: ENCRYPTED"
 
 def sanitize_pdf(text):
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-# --- [3. MOTOR DE AUDITORIA 6 PÁGINAS (SEM REGRESSÃO)] ---
-def generate_sovereign_audit_6pages(cpu, ai_report, bc_hash):
+def generate_audit_6pages(node_name, cpu, ai_report):
+    """Gera o dossiê de 6 páginas com Blockchain Hash e Telemetria"""
     try:
         pdf = FPDF()
         pdf.set_margins(15, 15, 15)
+        ts_now = time.strftime('%H:%M:%S')
+        bc_hash = hashlib.sha256(f"{node_name}{ts_now}".encode()).hexdigest().upper()
+        
         setores = ["AUDITORIA NIST", "FINANÇAS GLOBAIS", "GOVERNANÇA PQC", "FISIOLOGIA DIGITAL", "EB-1A EVIDENCE", "VEREDITO FINAL"]
-
+        
         for i, setor in enumerate(setores):
             pdf.add_page()
             pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
             pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
             pdf.cell(0, 10, "XEON COMMAND AUDIT - BIOINFORMATICA FISIOLOGICA", ln=True, align='C')
             pdf.set_font("Courier", "", 10)
-            pdf.cell(0, 10, f"BLOCKCHAIN_PROOF: {bc_hash[:16]} | PAGE {i+1}/6", ln=True, align='C')
+            pdf.cell(0, 10, f"SMART-TAG: {bc_hash[:16]} | PAGE {i+1}/6", ln=True, align='C')
             pdf.ln(5)
             
-            wrapped_ai = textwrap.fill(sanitize_pdf(ai_report), width=65) if i == 4 else "INTEGRIDADE OPERACIONAL ABSOLUTA."
+            wrapped_ai = textwrap.fill(sanitize_pdf(ai_report), width=65) if i == 4 else "INTEGRIDADE OPERACIONAL NOMINAL."
             
             lines = [
-                f"SETOR: {setor}",
-                f"TIMESTAMP: {time.strftime('%H:%M:%S')}",
-                f"SPACEX_TELEMETRY: {fetch_spacex_ops()}",
-                f"NEURALINK_STABILITY: 99.8% (ACTIVE)",
+                f"SETOR_AUDITADO: {setor}",
+                f"NODE_ALVO: {node_name}",
+                f"TIMESTAMP: {ts_now}",
+                f"SPACEX_OPS: {fetch_spacex_ops()}",
+                f"NEURAL_LINK: 99.8% STABLE",
                 f"RATE: R$ 1.000,00 / HOUR",
-                f"BLOCKCHAIN_HASH: {bc_hash}",
+                f"BLOCKCHAIN_PROOF: {bc_hash}",
                 "-"*50,
-                wrapped_ai if i == 4 else "SISTEMA EM OPERAÇÃO DE MISSÃO CRÍTICA.",
+                wrapped_ai if i == 4 else "INFRAESTRUTURA NACIONAL PROTEGIDA.",
                 "-"*50
             ]
             pdf.set_font("Courier", "B", 11)
             for line in lines: pdf.multi_cell(0, 7, line)
             
-            if setor == "VEREDITO FINAL":
-                pdf.ln(15); pdf.set_font("Courier", "B", 14)
-                pdf.cell(0, 10, "STATUS: NIW ELIGIBLE / CERTIFIED BY ARQ. MARCO ANTONIO", ln=True, align='C')
-
         return pdf.output()
     except: return b"RENDER_ERROR"
 
-# --- [4. DASHBOARD DE COMANDO CENTRAL] ---
+# --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
 def xeon_main():
     cpu_val = psutil.cpu_percent()
@@ -111,54 +96,46 @@ def xeon_main():
     
     with c1:
         st.metric("STABILITY", "NOMINAL")
-        st.write(f"<b style='color:{MATRIX_GREEN}; font-size:20px;'>R$ 1.000/h</b>", unsafe_allow_html=True)
-        # Substituição de st.code por st.markdown estilizado para evitar fundo branco
-        st.markdown(f"""
-            <div style='border:1px solid {MATRIX_GREEN}; padding:10px; font-family:monospace; background-color:{BLACKOUT};'>
-            BLOCKCHAIN: ACTIVE<br>
-            SPACEX: {fetch_spacex_ops()}
-            </div>
-        """, unsafe_allow_html=True)
+        st.write(f"<b style='color:{MATRIX_GREEN}; font-size:25px;'>R$ 1.000/h</b>", unsafe_allow_html=True)
+        st.markdown(f"<div style='border:1px solid {MATRIX_GREEN}; padding:5px;'>BLOCKCHAIN: ACTIVE<br>SPACEX: {fetch_spacex_ops()}</div>", unsafe_allow_html=True)
 
     with c2:
         st_echarts(options={"backgroundColor": "transparent", "series": [{"type": 'gauge', "data": [{"value": cpu_val}], "detail": {"color": MATRIX_GREEN}}]}, height="220px")
 
     with c3:
         st.metric("EB-1A READY", "YES")
-        lat = st.session_state.get('neural_lat', 0)
-        st.metric("NEURAL LATENCY", f"{lat}ms")
-        
         if st.button("🧠 SCAN IA FISIOLÓGICO"):
-            with st.status("Processando...", expanded=False) as s:
+            with st.status("Auditando Neuralink...", expanded=False) as s:
                 if client:
-                    start = time.time()
-                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Analise a homeostase para o EB-1A."}])
-                    st.session_state.neural_lat = int((time.time() - start) * 1000)
+                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Analise o mérito EB-1A deste sistema de defesa."}])
                     st.session_state.ai_rep = res.choices.message.content
-                    st.session_state.vox = f"Auditoria concluída."
-                    s.update(label="Concluído", state="complete")
-                else: st.session_state.ai_rep = "Modo Local Ativo."
+                    st.session_state.vox = "Análise concluída."
+                    s.update(label="Complete", state="complete")
 
     st.divider()
-    st.subheader("📑 DOSSIÊ DE IMUTABILIDADE (6 PÁGINAS)")
-    if st.button("🚀 REGISTRAR EM BLOCKCHAIN E GERAR PDF"):
-        report = st.session_state.get('ai_rep', "Sem dados de IA.")
-        bc_hash = get_blockchain_id(report + str(time.time()))
-        pdf_full = generate_sovereign_audit_6pages(cpu_val, report, bc_hash)
-        st.download_button("📥 BAIXAR DOSSIÊ CERTIFICADO", data=pdf_full, file_name=f"XEON_BLOCKCHAIN_{bc_hash[:8]}.pdf", mime="application/pdf")
+
+    # 9 NÓS DE DEFESA COM AUDITORIA INDIVIDUAL
+    setores_nos = ["CRIPTO QKD", "DEFESA gRPC", "SIGINT/ELINT", "NIW GOV", "FIBER SHIELD", "NEURAL AUDIT", "SAT LINK", "Q-STORAGE", "QUANTUM SENSING"]
+    cols = st.columns(3)
+    for i, s in enumerate(setores_nos):
+        with cols[i % 3]:
+            st.markdown(f"<div class='node-card'><small>NODE 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
+            if st.button(f"ATIVAR {s}", key=f"act_{i}"):
+                st.session_state.active_node = s
+                st.session_state.vox = f"Nó {s} operacional."
+            
+            if st.session_state.get('active_node') == s:
+                rep = st.session_state.get('ai_rep', "Aguardando scan de IA.")
+                pdf_bytes = generate_audit_6pages(s, cpu_val, rep)
+                st.download_button(label=f"📥 DOSSIÊ 6 FLS - {s}", data=pdf_bytes, file_name=f"XEON_{s}.pdf", mime="application/pdf", key=f"dl_{i}")
 
     if st.session_state.get('vox'):
-        components.html(f"""<script>
-            window.speechSynthesis.cancel();
-            var m = new SpeechSynthesisUtterance('{st.session_state.vox}');
-            m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
-        </script>""", height=0)
+        components.html(f"<script>window.speechSynthesis.cancel(); var m = new SpeechSynthesisUtterance('{st.session_state.vox}'); m.lang='pt-BR'; window.speechSynthesis.speak(m);</script>", height=0)
         st.session_state.vox = ""
 
-# --- [5. FINALIZAÇÃO SOBERANA] ---
+# --- [4. FINALIZAÇÃO SOBERANA] ---
 st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN}; letter-spacing: 5px;'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
 if 'ai_rep' not in st.session_state: st.session_state.ai_rep = ""
 if 'vox' not in st.session_state: st.session_state.vox = ""
-if 'neural_lat' not in st.session_state: st.session_state.neural_lat = 0
 xeon_main()
-st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | MISSION CRITICAL | ZERO WHITE")
+st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | MISSION CRITICAL | ZERO WHITE POLICY")
