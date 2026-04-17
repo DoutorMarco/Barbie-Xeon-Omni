@@ -7,7 +7,7 @@ from fpdf import FPDF
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
-import textwrap # Garante que o texto caiba no PDF
+import textwrap
 
 # --- [1. CONFIGURAÇÃO SOBERANA - BLACKOUT MATRIX] ---
 MATRIX_GREEN = "#00FF41"
@@ -28,56 +28,69 @@ st.markdown(f"""
         border: 2px solid {MATRIX_GREEN} !important; background-color: {BLACKOUT} !important;
         color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold; height: 50px;
     }}
-    .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; }}
     [data-testid="stHeader"], footer {{ display: none !important; }}
     .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; margin-bottom: 5px; background: rgba(0,255,65,0.05); }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF - PROTOCOLO DE RESILIÊNCIA TOTAL] ---
+# --- [2. MOTOR PDF - PROTOCOLO DE RESILIÊNCIA ABSOLUTA] ---
 def sanitize_text(text):
     if not text: return "N/A"
+    # Remove qualquer caractere que não seja latin-1 para evitar crash de encode
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-def get_pdf_bytes(node, cpu, ai_report):
-    """Gera o PDF blindado contra erros de espaço horizontal"""
-    pdf = FPDF()
-    pdf.set_margins(20, 20, 20) # Margens amplas para segurança
-    pdf.add_page()
-    
-    # Fundo Blackout
-    pdf.set_fill_color(0, 0, 0)
-    pdf.rect(0, 0, 210, 297, 'F')
-    
-    pdf.set_text_color(0, 255, 65)
-    pdf.set_font("Courier", "B", 16)
-    pdf.cell(0, 15, sanitize_text(f"XEON AUDIT: {node}"), ln=True, align='C')
-    pdf.ln(10)
-    
-    pdf.set_font("Courier", "", 10)
-    ts = time.strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Metadados e Parecer com Quebra de Linha Forçada (textwrap)
-    report_safe = sanitize_text(ai_report)
-    wrapped_report = textwrap.fill(report_safe, width=65) # Força quebra a cada 65 caracteres
-    
-    lines = [
-        f"TIMESTAMP: {ts}",
-        f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
-        f"CONSULTORIA: R$ 1.000,00 / HORA",
-        f"SISTEMA: {100-(cpu*0.1):.2f}% HOMEOSTASE",
-        "-"*40,
-        "PARECER TECNICO IA:",
-        wrapped_report,
-        "-"*40
-    ]
-    
-    for line in lines:
-        # multi_cell com w=0 garante o uso de toda a largura disponível
-        pdf.multi_cell(0, 7, line, align='L')
-    
-    # Retorna os bytes do PDF diretamente
-    return pdf.output()
+def get_pdf_bytes_blindado(node, cpu, ai_report):
+    """Gera o PDF usando escrita linear para evitar o erro de horizontal space"""
+    try:
+        pdf = FPDF()
+        pdf.set_margins(20, 20, 20)
+        pdf.add_page()
+        
+        # Fundo Blackout
+        pdf.set_fill_color(0, 0, 0)
+        pdf.rect(0, 0, 210, 297, 'F')
+        
+        # Cabeçalho
+        pdf.set_text_color(0, 255, 65)
+        pdf.set_font("Courier", "B", 16)
+        pdf.cell(0, 15, sanitize_text(f"XEON AUDIT: {node}"), ln=True, align='C')
+        pdf.ln(10)
+        
+        # Corpo Técnico
+        pdf.set_font("Courier", "", 10)
+        ts = time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Metadados fixos
+        meta = [
+            f"TIMESTAMP: {ts}",
+            f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
+            f"FEE RATE: R$ 1.000,00 / HOUR",
+            f"HOMEOSTASE: {100-(cpu*0.1):.2f}%",
+            "-"*45,
+            "GEN-AI PHYSIOLOGY ANALYSIS:"
+        ]
+        
+        for m in meta:
+            pdf.cell(0, 8, sanitize_text(m), ln=True)
+        
+        # Processamento do Parecer da IA (Blindagem contra Horizontal Space)
+        # Forçamos uma largura de 60 caracteres para nunca estourar a margem
+        report_safe = sanitize_text(ai_report)
+        wrapped_lines = textwrap.wrap(report_safe, width=60)
+        
+        for line in wrapped_lines:
+            pdf.cell(0, 7, line, ln=True)
+            
+        pdf.cell(0, 8, "-"*45, ln=True)
+        
+        return pdf.output()
+    except Exception as e:
+        # Se tudo falhar, retorna um PDF de emergência com o erro
+        fail_pdf = FPDF()
+        fail_pdf.add_page()
+        fail_pdf.set_font("Courier", "B", 12)
+        fail_pdf.cell(0, 10, "ERRO CRITICO DE RENDERIZACAO", ln=True)
+        return fail_pdf.output()
 
 # --- [3. DASHBOARD DE COMANDO] ---
 @st.fragment(run_every=5)
@@ -87,10 +100,10 @@ def xeon_main():
     
     with c1:
         st.metric("STABILITY", "NOMINAL")
-        st.metric("FEE RATE", "R$ 1.000/h")
+        st.metric("RATE", "R$ 1.000/h")
         try:
             usd = yf.Ticker("USDBRL=X").history(period="1d")['Close'].iloc[-1]
-            st.metric("MARKET USD", f"{usd:.2f}")
+            st.metric("USD/BRL", f"{usd:.2f}")
         except: st.write("Relay Offline")
 
     with c2:
@@ -104,10 +117,10 @@ def xeon_main():
                     try:
                         res = client.chat.completions.create(
                             model="gpt-4o",
-                            messages=[{"role": "user", "content": f"Analise a homeostase de {cpu_val}% para visto EB1A."}]
+                            messages=[{"role": "user", "content": f"Analise brevemente o valor de R$ 1000/h deste sistema de {cpu_val}% carga para o visto EB1A."}]
                         )
                         st.session_state.ai_report = res.choices.message.content
-                        st.session_state.vox = "Análise concluída."
+                        st.session_state.vox = "Analise concluída."
                         s.update(label="Concluído", state="complete")
                     except:
                         st.session_state.ai_report = "Erro na API OpenAI."
@@ -127,15 +140,14 @@ def xeon_main():
                 st.session_state.vox = f"Nó {s} operacional."
             
             if st.session_state.get('active_node') == s:
-                rep = st.session_state.get('ai_report', "Sem dados de IA.")
-                # Geração de PDF corrigida
-                pdf_data = get_pdf_bytes(s, cpu_val, rep)
-                
+                rep = st.session_state.get('ai_report', "Aguardando scan.")
+                # Geração de PDF usando o motor blindado
+                pdf_data = get_pdf_bytes_blindado(s, cpu_val, rep)
                 st.download_button(
-                    label="📥 BAIXAR EB-1A PDF",
-                    data=pdf_bytes if 'pdf_bytes' in locals() else pdf_data,
-                    file_name=f"XEON_{s}.pdf",
-                    mime="application/pdf",
+                    label="📥 BAIXAR EB-1A PDF", 
+                    data=pdf_bytes if 'pdf_bytes' in locals() else pdf_data, 
+                    file_name=f"XEON_{s}.pdf", 
+                    mime="application/pdf", 
                     key=f"dl_{i}"
                 )
 
