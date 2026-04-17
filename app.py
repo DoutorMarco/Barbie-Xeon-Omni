@@ -5,11 +5,12 @@ import psutil
 import unicodedata
 import textwrap
 from fpdf import FPDF # Requisito: fpdf2 no requirements.txt
+from io import BytesIO
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
 
-# --- [1. CONFIGURAÇÃO SOBERANA - ZERO BRANCO] ---
+# --- [1. CONFIGURAÇÃO SOBERANA] ---
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
 
@@ -35,47 +36,49 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO DE FLUXO PURO] ---
+# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTESIO] ---
 def sanitize_pdf(text):
     return unicodedata.normalize('NFKD', str(text)).encode('ascii', 'ignore').decode('ascii')
 
 def generate_xeon_pdf(node_name, cpu, ai_report):
-    """Gera 6 páginas de auditoria e retorna buffer binário direto"""
+    """Gera 6 páginas e converte explicitamente para BytesIO para evitar StreamlitAPIException"""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     ts = time.strftime('%H:%M:%S')
     bc = hashlib.sha256(f"{node_name}{ts}".encode()).hexdigest().upper()
     
-    setores = ["AUDITORIA NIST", "FINANÇAS $450/H", "GOVERNANÇA PQC", "FISIOLOGIA DIGITAL", "EB-1A EVIDENCE", "VEREDITO FINAL"]
+    setores = ["AUDITORIA NIST", "FINANCAS GLOBAIS", "GOVERNANCA PQC", "FISIOLOGIA DIGITAL", "EB-1A EVIDENCE", "VEREDITO FINAL"]
     
     for i, setor in enumerate(setores):
         pdf.add_page()
-        pdf.set_fill_color(0, 0, 0)
-        pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_text_color(0, 255, 65)
-        pdf.set_font("Courier", "B", 14)
+        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
+        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
         pdf.cell(0, 10, "XEON COMMAND - SOH v2.2", ln=True, align='C')
         pdf.set_font("Courier", "", 10)
-        pdf.cell(0, 10, f"HASH: {bc[:16]} | PÁGINA {i+1}/6", ln=True, align='C')
+        pdf.cell(0, 10, f"HASH: {bc[:16]} | PAGE {i+1}/6", ln=True, align='C')
         pdf.ln(10)
         
         info = ai_report if i == 4 else "SISTEMA OPERANDO EM HOMEOSTASE ABSOLUTA."
         wrapped = textwrap.fill(sanitize_pdf(info), width=65)
         
         pdf.set_font("Courier", "B", 11)
-        pdf.multi_cell(0, 8, f"SETOR: {setor}\nNODE: {node_name}\nTAXA: $450/H\nSTATUS: CRITICAL INFRASTRUCTURE OK\n{'-'*50}\n{wrapped}")
-        
-    return pdf.output() # Retorna bytes (FPDF2)
+        content = f"SETOR: {setor}\nNODE: {node_name}\nTAXA: $450/H\nSTATUS: NOMINAL\n{'-'*50}\n{wrapped}"
+        pdf.multi_cell(0, 8, content)
+    
+    # SOLUÇÃO DO ERRO: Converter output para buffer de bytes real
+    output = pdf.output()
+    if isinstance(output, str): output = output.encode('latin-1')
+    return BytesIO(output)
 
-# --- [3. INTERFACE DE COMANDO E VOZ] ---
+# --- [3. DASHBOARD DE COMANDO COM PROTOCOLO VOX] ---
 @st.fragment(run_every=5)
 def xeon_core():
     cpu = psutil.cpu_percent()
     c1, c2, c3 = st.columns([1, 1, 1])
     
     with c1:
-        st.metric("HOMEÓSTASE", f"{100-cpu}%")
-        st.write(f"**TAXA: $450/H**")
+        st.metric("STABILITY", "NOMINAL")
+        st.write(f"**RATE: $450/H**")
     with c2:
         st_echarts(options={"series": [{"type": 'gauge', "data": [{"value": cpu}], "detail": {"color": MATRIX_GREEN}}]}, height="200px")
     with c3:
@@ -92,20 +95,28 @@ def xeon_core():
     for i, n in enumerate(nos):
         with cols[i % 3]:
             st.markdown(f"<div class='node-card'>NÓ 0{i+1}<br><b>{n}</b></div>", unsafe_allow_html=True)
-            if st.button(f"ATIVAR {n}", key=i):
+            if st.button(f"ATIVAR {n}", key=f"btn_{i}"):
                 st.session_state.active_node = n
-                st.session_state.vox = f"Nó {n} ativo."
+                st.session_state.vox = f"Nó {n} em operação."
             
+            # Botão de Download fixo em cada nó ativo
             if st.session_state.get('active_node') == n:
-                pdf_data = generate_xeon_pdf(n, cpu, st.session_state.get('ai_rep', "Sem dados de IA."))
-                st.download_button("📥 BAIXAR DOSSIÊ", data=pdf_data, file_name=f"XEON_{n}.pdf", mime="application/pdf", key=f"dl_{i}")
+                pdf_buffer = generate_xeon_pdf(n, cpu, st.session_state.get('ai_rep', "Aguardando IA..."))
+                st.download_button(
+                    label="📥 BAIXAR DOSSIÊ", 
+                    data=pdf_buffer, 
+                    file_name=f"XEON_{n}.pdf", 
+                    mime="application/pdf", 
+                    key=f"dl_{i}"
+                )
 
     if st.session_state.get('vox'):
-        components.html(f"<script>var u=new SpeechSynthesisUtterance('{st.session_state.vox}');u.lang='pt-BR';window.speechSynthesis.speak(u);</script>", height=0)
+        components.html(f"<script>var m=new SpeechSynthesisUtterance('{st.session_state.vox}');m.lang='pt-BR';window.speechSynthesis.speak(m);</script>", height=0)
         st.session_state.vox = ""
 
-# --- [4. EXECUÇÃO] ---
+# --- [4. FINALIZAÇÃO] ---
 st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
 if 'ai_rep' not in st.session_state: st.session_state.ai_rep = ""
 if 'vox' not in st.session_state: st.session_state.vox = ""
 xeon_core()
+st.caption("ADMIN: MARCO ANTONIO | $450/H | ZERO BRANCO ATIVO")
