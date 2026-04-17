@@ -7,12 +7,11 @@ import yfinance as yf
 import requests
 import textwrap
 from fpdf import FPDF
-from io import BytesIO  # Buffer de Memória Blindado
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
 
-# --- [1. CONFIGURAÇÃO SOBERANA - ZERO BRANCO] ---
+# --- [1. CONFIGURAÇÃO SOBERANA - BLACKOUT TOTAL] ---
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
 
@@ -38,20 +37,20 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTESIO (CORREÇÃO)] ---
+# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTES PUROS (CORREÇÃO)] ---
 def sanitize_to_pdf(text):
     if not text: return "N/A"
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
 def generate_fixed_audit_6pages(node_name, cpu, ai_report):
-    """Gera o dossiê de 6 páginas em buffer de bytes puro para evitar erro de carregamento"""
+    """Gera o dossiê de 6 páginas com retorno de bytes puros para estabilidade total"""
     try:
         pdf = FPDF()
         pdf.set_margins(20, 20, 20)
         ts_now = time.strftime('%H:%M:%S')
         bc_hash = hashlib.sha256(f"{node_name}{ts_now}".encode()).hexdigest().upper()
         
-        setores = ["AUDITORIA NIST", "FINANÇAS GLOBAIS", "GOVERNANÇA PQC", "FISIOLOGIA DIGITAL", "EB-1A EVIDENCE", "VEREDITO FINAL"]
+        setores = ["AUDITORIA NIST", "FINANCAS GLOBAIS", "GOVERNANCA PQC", "FISIOLOGIA DIGITAL", "EB-1A EVIDENCE", "VEREDITO FINAL"]
         
         for i, setor in enumerate(setores):
             pdf.add_page()
@@ -69,6 +68,7 @@ def generate_fixed_audit_6pages(node_name, cpu, ai_report):
                 f"NODE_TARGET: {node_name}",
                 f"TIMESTAMP: {ts_now}",
                 f"FEE_RATE: R$ 1.000,00 / HOUR",
+                f"SISTEMA: {100-(cpu*0.1):.2f}% HOMEOSTASE",
                 f"BLOCKCHAIN_PROOF: {bc_hash}",
                 "-"*50,
                 wrapped_ai if i == 4 else "SISTEMA EM OPERACAO DE MISSAO CRITICA.",
@@ -81,13 +81,10 @@ def generate_fixed_audit_6pages(node_name, cpu, ai_report):
                 pdf.ln(15); pdf.set_font("Courier", "B", 14)
                 pdf.cell(0, 10, "STATUS: NIW ELIGIBLE / MISSION SUCCESS", ln=True, align='C')
 
-        # CORREÇÃO CRÍTICA: Retornar bytes puros via buffer
-        pdf_output = pdf.output(dest='S')
-        if isinstance(pdf_output, str):
-            return pdf_output.encode('latin-1')
-        return bytes(pdf_output)
+        # Retorna os bytes do PDF diretamente sem conversão para string
+        return pdf.output()
     except Exception as e:
-        return f"ERRO_PDF: {str(e)}".encode('latin-1')
+        return f"ERRO_FATAL: {str(e)}".encode('latin-1')
 
 # --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
@@ -106,12 +103,13 @@ def xeon_main():
     with c3:
         st.metric("EB-1A READY", "YES")
         if st.button("🧠 SCAN IA FISIOLÓGICO"):
-            with st.status("Processando...", expanded=False) as s:
+            with st.status("Auditando...", expanded=False) as s:
                 if client:
-                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Parecer NIW sobre soberania digital."}])
+                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Parecer NIW sobre soberania digital e infraestrutura critica."}])
                     st.session_state.ai_rep = res.choices.message.content
                     st.session_state.vox = "Análise concluída."
                     s.update(label="Complete", state="complete")
+                else: st.session_state.ai_rep = "IA em modo local."
 
     st.divider()
 
@@ -126,19 +124,23 @@ def xeon_main():
                 st.session_state.vox = f"Nó {s} operacional."
             
             if st.session_state.get('active_node') == s:
-                rep = st.session_state.get('ai_rep', "Sem dados de IA.")
-                # Geração de PDF via motor corrigido
-                pdf_data = generate_fixed_audit_6pages(s, cpu_val, rep)
+                rep = st.session_state.get('ai_rep', "Inicie o SCAN IA.")
+                # Geração de PDF corrigida para bytes reais
+                pdf_bytes = generate_fixed_audit_6pages(s, cpu_val, rep)
                 st.download_button(
                     label=f"📥 BAIXAR EB-1A {s}", 
-                    data=pdf_data, 
+                    data=pdf_bytes, 
                     file_name=f"XEON_{s}.pdf", 
                     mime="application/pdf", 
                     key=f"dl_{i}"
                 )
 
     if st.session_state.get('vox'):
-        components.html(f"<script>window.speechSynthesis.cancel(); var m = new SpeechSynthesisUtterance('{st.session_state.vox}'); m.lang='pt-BR'; window.speechSynthesis.speak(m);</script>", height=0)
+        components.html(f"""<script>
+            window.speechSynthesis.cancel();
+            var m = new SpeechSynthesisUtterance('{st.session_state.vox}');
+            m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
+        </script>""", height=0)
         st.session_state.vox = ""
 
 # --- [4. FINALIZAÇÃO] ---
@@ -146,3 +148,4 @@ st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAN
 if 'ai_rep' not in st.session_state: st.session_state.ai_rep = ""
 if 'vox' not in st.session_state: st.session_state.vox = ""
 xeon_main()
+st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | R$ 1.000/H | ZERO WHITE POLICY")
