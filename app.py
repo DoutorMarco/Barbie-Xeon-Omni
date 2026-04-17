@@ -1,118 +1,103 @@
 import streamlit as st
 import psutil
-import time
-import hashlib
+import pandas as pd
 import yfinance as yf
 from fpdf import FPDF
+import hashlib
+import time
 import streamlit.components.v1 as components
 
-# --- [1. CONFIGURAÇÃO DE AMBIENTE] ---
-st.set_page_config(page_title="XEON OMNI v101.66", layout="wide", page_icon="🛰️")
+# --- [CONFIGURAÇÃO SOBERANA] ---
+st.set_page_config(page_title="XEON OMNI v101.68", layout="wide", page_icon="🛰️")
 
-# CSS MATRIX BLACKOUT (Design Soberano)
+# CSS MATRIX BLACKOUT TOTAL
 st.markdown("""
     <style>
     .stApp { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
-    .stButton>button { background-color: #000000; color: #00FF41; border: 1px solid #00FF41; border-radius: 0px; width: 100%; transition: 0.3s; height: 50px; font-weight: bold; }
-    .stButton>button:hover { background-color: #00FF41; color: #000000; box-shadow: 0 0 15px #00FF41; }
-    .status-box { border: 1px solid #00FF41; padding: 15px; background: #0A0A0A; margin-bottom: 20px; border-left: 5px solid #00FF41; }
-    [data-testid="stMetricValue"] { color: #00FF41 !important; }
-    .stProgress > div > div > div > div { background-color: #00FF41; }
+    .stButton>button { background-color: #000000; color: #00FF41 !important; border: 1px solid #00FF41 !important; width: 100%; height: 50px; font-weight: bold; }
+    .stButton>button:hover { background-color: #00FF41 !important; color: #000000 !important; box-shadow: 0 0 15px #00FF41; }
+    .status-box { border: 1px solid #00FF41; padding: 10px; background: #0A0A0A; margin-bottom: 20px; border-left: 5px solid #00FF41; }
     h1, h2, h3, h4 { color: #00FF41 !important; }
+    [data-testid="stMetricValue"] { color: #00FF41 !important; }
     </style>
     """, unsafe_allow_stdio=True)
 
-# --- [2. MOTOR DE DADOS E PDF] ---
-def get_metrics():
-    return {
-        "cpu": psutil.cpu_percent(),
-        "token": hashlib.sha256(str(time.time()).encode()).hexdigest()[:32].upper(),
-        "ts": time.strftime('%Y-%m-%d %H:%M:%S')
-    }
+# --- [CORE: GERADOR DE DOSSIÊ 6 PÁGINAS] ---
+class XeonPDF(FPDF):
+    def header(self):
+        self.set_fill_color(0, 0, 0)
+        self.rect(0, 0, 210, 297, 'F')
+        self.set_text_color(0, 255, 65)
+        self.set_font("Courier", "B", 12)
+        self.cell(0, 10, "XEON COMMAND - CONFIDENTIAL AUDIT", 0, 1, 'C')
 
-@st.cache_data(ttl=60)
-def get_market():
-    try:
-        data = yf.download(["^GSPC", "USDBRL=X", "BTC-USD"], period="1d", interval="1m", progress=False)
-        return {"sp500": data['Close']['^GSPC'].iloc[-1], "usd": data['Close']['USDBRL=X'].iloc[-1], "btc": data['Close']['BTC-USD'].iloc[-1]}
-    except:
-        return {"sp500": 5250.0, "usd": 5.15, "btc": 69000.0}
-
-def generate_pdf(title, met, m):
-    pdf = FPDF()
-    clauses = ["DIREITO E SOBERANIA", "INFRAESTRUTURA NIST", "AUDITORIA EB-1A", "BIOMEDICINA", "GOVERNANÇA GRC", "BLOCKCHAIN LEDGER"]
-    for i in range(1, 7):
+def create_dossier(sector, token):
+    pdf = XeonPDF()
+    sections = ["AUDITORIA NIST", "SOBERANIA JURÍDICA", "ANÁLISE BIOMÉDICA", "GOVERNANÇA GRC", "INFRAESTRUTURA CRÍTICA", "EB-1A EVIDENCE"]
+    for i in range(6):
         pdf.add_page()
-        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
-        pdf.cell(0, 15, f"RELATORIO XEON CRITICAL: {title}", 0, 1, 'C')
-        pdf.ln(10)
-        pdf.set_font("Courier", "", 11)
-        pdf.multi_cell(0, 10, f"PAGINA {i}/6\nTOKEN: {met['token']}\nSETOR: {clauses[i-1]}\nMARKET BTC: {m['btc']}\nMARKET USD: {m['usd']}\n\nEste documento atesta a integridade do sistema Xeon Omni em conformidade com padroes internacionais de defesa.")
-    return pdf.output(dest='S').encode('latin-1')
+        pdf.set_font("Courier", "B", 16)
+        pdf.cell(0, 20, f"RELATÓRIO: {sector}", 0, 1, 'L')
+        pdf.set_font("Courier", "", 12)
+        pdf.multi_cell(0, 10, f"PÁGINA {i+1}/6\nTOKEN: {token}\nSEÇÃO: {sections[i]}\n\n" + "X "*200)
+    return pdf.output()
 
-# --- [3. INTERFACE DE COMANDO] ---
-st.title("🛰️ XEON OMNI v101.66 | GLOBAL COMMAND")
-st.subheader("Missão Crítica: Ativa | APIs: Conectadas")
+# --- [INTERFACE PRINCIPAL] ---
+st.title("🛰️ XEON OMNI v101.68")
+st.write("ESTADO: **OPERANDO EM MISSÃO CRÍTICA** | APIS: **CONECTADAS**")
 
-# Painel de Voz
+# COMANDO DE VOZ
 components.html("""
     <div style="background:#000; border:1px solid #00FF41; padding:15px; color:#00FF41; font-family:monospace;">
         <button onclick="rec()" style="background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🎙️ ESCUTA ATIVA</button>
-        <button onclick="speak()" style="background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer; margin-left:10px;">🔊 STATUS</button>
-        <div id="v-log" style="margin-top:10px; font-size:11px;">> STANDBY</div>
+        <p id="st" style="display:inline; margin-left:10px;">> STANDBY</p>
     </div>
     <script>
-        function speak() { 
-            const u = new SpeechSynthesisUtterance("Xeon ativo. Sistema pronto."); 
-            u.rate = 0.8; window.speechSynthesis.speak(u);
-        }
         function rec() { 
-            document.getElementById('v-log').innerText = "> ESCUTANDO COMANDOS...";
             const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             r.lang = 'pt-BR'; r.start();
-            r.onresult = (e) => { document.getElementById('v-log').innerText = "> CAPTADO: " + e.results[0][0].transcript.toUpperCase(); };
+            document.getElementById('st').innerText = "> ESCUTANDO...";
+            r.onresult = (e) => { document.getElementById('st').innerText = "> CAPTADO: " + e.results[0][0].transcript.toUpperCase(); };
         }
     </script>
-""", height=120)
+""", height=100)
 
-# Telemetria Real
-m = get_market()
-c1, c2, c3 = st.columns(3)
-c1.metric("S&P 500", f"{m['sp500']:.2f}")
-c2.metric("USD/BRL", f"{m['usd']:.4f}")
-c3.metric("BITCOIN", f"${m['btc']:,.0f}")
+# MERCADO REAL
+try:
+    m_data = yf.download(["^GSPC", "USDBRL=X", "BTC-USD"], period="1d", interval="1m", progress=False)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("S&P 500", f"{m_data['Close']['^GSPC'].iloc[-1]:.2f}")
+    c2.metric("USD/BRL", f"{m_data['Close']['USDBRL=X'].iloc[-1]:.4f}")
+    c3.metric("BITCOIN", f"${m_data['Close']['BTC-USD'].iloc[-1]:,.0f}")
+except:
+    st.warning("Aguardando sincronização de APIs globais...")
 
-# --- [4. TERMINAIS DE MISSÃO] ---
-st.write("### 🛠️ UNIDADES DE AUDITORIA E MONETIZAÇÃO")
-sectors = ["FINANÇAS GLOBAIS", "GOVERNANÇA E CONFORMIDADE", "PROVA TÉCNICA EB-1A"]
+# TERMINAIS DE AUDITORIA
+st.write("### 🛠️ TERMINAIS DE GOVERNANÇA E FINANÇAS")
+setores = ["FINANÇAS GLOBAIS", "CONFORMIDADE REGULATÓRIA", "PROVA TÉCNICA EB-1A"]
 
-for i, sec in enumerate(sectors):
+for i, setor in enumerate(setores):
     with st.container():
-        st.markdown(f"<div class='status-box'>[NÓ 0{i+1}] {sec}</div>", unsafe_allow_stdio=True)
+        st.markdown(f"<div class='status-box'>[NÓ 0{i+1}] {setor}</div>", unsafe_allow_stdio=True)
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            if st.button(f"ATIVAR NÓ 0{i+1}", key=f"btn_{i}"):
-                met = get_metrics()
-                # Telemetria sob o botão
-                with st.status(f"Processando {sec}...", expanded=True):
-                    st.write("Verificando Handshake NIST...")
-                    time.sleep(0.5)
-                    st.write(f"Gerando Dossiê 6 Páginas. Token: {met['token'][:10]}")
-                    st.progress(100)
+            if st.button(f"ATIVAR AUDITORIA {i+1}", key=f"exe_{i}"):
+                token = hashlib.sha256(str(time.time()).encode()).hexdigest()[:16].upper()
+                with st.status("Processando...", expanded=False):
+                    time.sleep(1)
+                    st.write("Gerando Dossiê 6 Páginas...")
                 
-                # PDF de 6 Páginas abaixo da telemetria
-                pdf_bytes = generate_pdf(sec, met, m)
+                pdf_out = create_dossier(setor, token)
                 st.download_button(
-                    label=f"📥 BAIXAR RELATÓRIO PDF (6 FOLHAS) - {sec}",
-                    data=pdf_bytes,
-                    file_name=f"XEON_AUDIT_{i+1}.pdf",
+                    label="📥 BAIXAR RELATÓRIO (6 FOLHAS)",
+                    data=bytes(pdf_out),
+                    file_name=f"XEON_{setor}.pdf",
                     mime="application/pdf",
                     key=f"dl_{i}"
                 )
         with col2:
-            st.info(f"Monitor de segurança ativo para {sec}. Auditoria transdisciplinar pronta.")
+            st.caption(f"Aguardando pulso de comando para {setor}. Governança em tempo real.")
 
 st.divider()
-st.caption(f"ARQUITETO PRINCIPAL: MARCO ANTONIO DO NASCIMENTO | {time.strftime('%Y')} | ENCRYPTED: {get_metrics()['token'][:16]}")
+st.caption(f"ARQUITETO: MARCO ANTONIO DO NASCIMENTO | SOVEREIGN OPERATIONS HUB")
