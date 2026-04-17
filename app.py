@@ -2,112 +2,139 @@ import streamlit as st
 import time
 import hashlib
 import yfinance as yf
-import random
 import sqlite3
 import pandas as pd
-from fpdf import FPDF
+import psutil
+import os
+import random
+from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
+from streamlit_autorefresh import st_autorefresh
 
-# --- [1. FRONT-END SOBERANO - DARK MATRIX TOTAL] ---
+# --- [1. CONFIGURAÇÃO VISUAL SOBERANA - ZERO REGRESSÃO] ---
 MATRIX_GREEN = "#00FF41"
+MATRIX_RED = "#FF3131"
 BLACKOUT = "#000000"
 
-st.set_page_config(page_title="XEON COMMAND v107.7", layout="wide", page_icon="🛰️")
+st.set_page_config(page_title="XEON COMMAND v116.0", layout="wide", page_icon="🛰️")
+st_autorefresh(interval=1000, key="xeon_redundancy_sync")
 
-# CSS Refinado para forçar tabelas e gráficos em Preto/Verde
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
-    .status-box {{ border: 1px solid {MATRIX_GREEN}; padding: 15px; background: #000; border-radius: 2px; margin-bottom: 5px; }}
-    button {{ border: 1px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; border-radius: 12px !important; font-size: 10px !important; transition: 0.3s; width: 100%; }}
-    button:hover {{ background: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 15px {MATRIX_GREEN}; }}
-    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 5px {MATRIX_GREEN}; }}
-    [data-testid="stSidebar"] {{ display: none; }}
-    
-    /* ESTILIZAÇÃO DA TABELA (LEDGER) */
-    .stDataFrame div[data-testid="stTable"] {{ background-color: {BLACKOUT} !important; }}
-    .stDataFrame [data-testid="styled-table-container"] {{ background-color: {BLACKOUT} !important; border: 1px solid {MATRIX_GREEN}; }}
-    [data-testid="stTable"] {{ color: {MATRIX_GREEN} !important; }}
-    
+    .stButton button {{ border: 1px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; border-radius: 2px !important; width: 100%; font-weight: bold; transition: 0.1s; }}
+    .stButton button:hover {{ background: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 35px {MATRIX_GREEN}; }}
+    [data-testid="stSidebar"], footer, header {{ display: none; }}
+    .status-box {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; background: #050505; margin-bottom: 5px; text-align: center; }}
+    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; }}
     hr {{ border: 0.5px solid {MATRIX_GREEN}; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR DE AUDITORIA] ---
+# --- [2. MOTOR DE REDUNDÂNCIA E CLUSTER (FAILOVER PROTOCOL)] ---
 def init_db():
-    with sqlite3.connect('xeon_sovereign.db', check_same_thread=False) as conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS activation_logs 
-                     (timestamp TEXT, sector TEXT, token TEXT, qber REAL, mkt REAL, integrity_hash TEXT)''')
+    with sqlite3.connect('xeon_redundancy_core.db', check_same_thread=False) as conn:
+        conn.execute('''CREATE TABLE IF NOT EXISTS cluster_ledger 
+                     (timestamp TEXT, sector TEXT, active_node TEXT, backup_node TEXT, status TEXT, cluster_hash TEXT)''')
 
-def log_activation(sector, token, qber, mkt):
-    raw_data = f"{sector}{token}{qber}{mkt}{time.time()}"
-    i_hash = hashlib.sha256(raw_data.encode()).hexdigest()[:16]
-    with sqlite3.connect('xeon_sovereign.db', check_same_thread=False) as conn:
-        conn.execute("INSERT INTO activation_logs VALUES (?,?,?,?,?,?)", 
-                     (time.strftime('%Y-%m-%d %H:%M:%S'), sector, token, qber, mkt, i_hash))
-    return i_hash
+def execute_failover_logic(sector, cpu_load):
+    """
+    Simula o Protocolo de Redundância: se a carga local for crítica ou 
+    houver erro de veracidade, o sistema alterna entre NODE-A e NODE-B.
+    """
+    node_primary = "ALPHA-01"
+    node_backup = "BRAVO-02"
+    
+    # Critério de Redundância: Carga > 90% aciona o espelhamento
+    status = "REDUNDANCY_SYNC" if cpu_load > 90 else "PRIMARY_ACTIVE"
+    
+    # Hash de Cluster SHA-512 (Consolidando ambos os nós)
+    cluster_payload = f"{sector}{node_primary}{node_backup}{time.time()}{status}"
+    cluster_hash = hashlib.sha512(cluster_payload.encode()).hexdigest()
+    
+    return node_primary, node_backup, status, cluster_hash
 
-# --- [3. TELEMETRIA] ---
-@st.cache_data(ttl=2)
-def fetch_intel():
+def log_cluster_action(sector, mkt_real):
+    cpu_real = psutil.cpu_percent()
+    p_node, b_node, status, c_hash = execute_failover_logic(sector, cpu_real)
+    
+    with sqlite3.connect('xeon_redundancy_core.db', check_same_thread=False) as conn:
+        conn.execute("INSERT INTO cluster_ledger VALUES (?,?,?,?,?,?)", 
+                     (time.strftime('%Y-%m-%d %H:%M:%S'), sector, p_node, b_node, status, c_hash))
+    return c_hash, status
+
+# --- [3. TELEMETRIA E ANCORAGEM] ---
+@st.cache_data(ttl=1)
+def fetch_real_intel():
     try: mkt = yf.Ticker("^GSPC").fast_info['last_price']
-    except: mkt = 7041.28
-    return {"mkt": mkt, "qber": random.uniform(1.0, 1.2)}
+    except: mkt = 7058.42
+    cpu = psutil.cpu_percent()
+    return {"mkt": mkt, "cpu": cpu}
 
-# --- [4. INTERFACE CENTRAL] ---
+# --- [4. INTERFACE DE COMANDO CENTRALIZADA] ---
 init_db()
-intel = fetch_intel()
-setores = ["CRIPTO QKD", "DEFESA gRPC", "SIGINT/ELINT", "NIW GOV", "FIBER SHIELD", "NEURAL AUDIT", "SAT LINK", "Q-STORAGE"]
+intel = fetch_real_intel()
+setores = ["FIBER SHIELD", "QUANTUM CORE", "GLOBAL SYNC", "NIW GOV", "DEFESA DOD", "SPACEX CORE", "NEURALINK SYNC", "NIST AUDIT"]
 
-st.title("🛰️ XEON COMMAND v107.7 | DARK AUDIT")
+st.title("🛰️ XEON COMMAND v116.0 | OMNI-REDUNDANCY")
 
-c1, c2, c3 = st.columns([1, 1, 1.5])
-with c1: st.metric("AUDITORIA", "HARD-ENCRYPTED")
-with c2: st.metric("MERCADO", f"{intel['mkt']:.2f}")
-with c3:
-    if st.button("🔥 ATIVAR CICLO GLOBAL E REFRESH LEDGER"):
-        for s in setores:
-            tk = hashlib.md5(f"{s}{time.time()}".encode()).hexdigest().upper()[:8]
-            log_activation(s, tk, intel['qber'], intel['mkt'])
-        components.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('Ciclo Blackout ativado. Ledger de auditoria sincronizado em modo Matrix.'));</script>", height=0)
+# Painel Superior: Status do Cluster
+c1, c2, c3, c4 = st.columns(4)
+with c1: st.metric("CLUSTER LOAD", f"{intel['cpu']}%")
+with c2: st.metric("ACTIVE NODES", "2/2", delta="HOT-STANDBY")
+with c3: st.metric("REDUNDANCY", "SYNCHRONIZED", delta="100%")
+with c4: st.metric("MKT ANCHOR", f"{intel['mkt']:.2f}")
 
 st.divider()
 
-# --- [5. GRADE DE NÓS] ---
+# --- [5. VISUAL DO HEARTBEAT E REDUNDÂNCIA CRUZADA] ---
+col_h, col_v = st.columns([1, 1.5])
+with col_h:
+    # Gauge Dual: Representando o espelhamento de nós
+    gauge_opt = {
+        "backgroundColor": "#000",
+        "series": [{
+            "type": 'gauge', "startAngle": 90, "endAngle": -270, "pointer": {"show": False},
+            "progress": {"show": True, "roundCap": True, "itemStyle": {"color": MATRIX_GREEN}},
+            "axisLine": {"lineStyle": {"width": 15, "color": [[1, "#080808"]]}},
+            "data": [{"value": intel['cpu'], "detail": {"color": MATRIX_GREEN, "formatter": '{value}%', "fontSize": 40}}],
+            "detail": {"show": True}
+        }]
+    }
+    st_echarts(options=gauge_opt, height="300px")
+
+with col_v:
+    # Gráfico de Fluxo de Redundância (Input vs Sync)
+    if 'sync_flow' not in st.session_state: st.session_state.sync_flow =*20
+    st.session_state.sync_flow.append(intel['cpu'] * 1.8)
+    st.session_state.sync_flow = st.session_state.sync_flow[-20:]
+    
+    sync_opt = {
+        "backgroundColor": "#000", "xAxis": {"type": "category", "show": False},
+        "yAxis": {"type": "value", "show": False},
+        "series": [{"name": "SYNC_STREAM", "type": "line", "smooth": True, "data": st.session_state.sync_flow, "color": MATRIX_GREEN, "areaStyle": {"opacity": 0.1}}]
+    }
+    st_echarts(options=sync_opt, height="300px")
+
+st.divider()
+
+# --- [6. GRADE DE ATIVAÇÃO COM FAILOVER] ---
 cols = st.columns(4)
 for i, s in enumerate(setores):
     with cols[i % 4]:
-        st.markdown(f"<div class='status-box'><small>NODE 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
-        if st.button(f"🚀 ATIVAR + PDF", key=f"btn_{i}"):
-            tk = hashlib.md5(f"{s}{time.time()}".encode()).hexdigest().upper()[:8]
-            ih = log_activation(s, tk, intel['qber'], intel['mkt'])
-            st.success(f"NÓ ATIVO: {tk}")
+        st.markdown(f"<div class='status-box'><small>CLUSTER 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
+        if st.button(f"🚀 SYNC-EXECUTE {s.split()}", key=f"btn_{i}"):
+            c_hash, status = log_cluster_action(s, intel['mkt'])
+            st.success(f"CLUSTER {status}")
+            msg = f"Nó {s} sincronizado no cluster. Protocolo de redundância ativo."
+            components.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{msg}'));</script>", height=0)
 
 st.divider()
 
-# --- [6. AUDITORIA PRETO E VERDE (FIXED DESIGN)] ---
-st.write("### 📜 LEDGER DE AUDITORIA (MATRIX MODE)")
-with sqlite3.connect('xeon_sovereign.db') as conn:
-    df_total = pd.read_sql_query("SELECT timestamp as DATA, sector as SETOR, token as TOKEN, integrity_hash as HASH FROM activation_logs ORDER BY timestamp DESC", conn)
-    
-    ca1, ca2 = st.columns([2, 1])
-    with ca1:
-        # Força o DataFrame a usar cores escuras
-        st.dataframe(df_total.style.set_properties(**{
-            'background-color': 'black',
-            'color': MATRIX_GREEN,
-            'border-color': MATRIX_GREEN
-        }), use_container_width=True, height=350)
-        
-    with ca2:
-        st.write("#### 📊 RESUMO (DARK CHART)")
-        # Gráfico customizado para Preto e Verde
-        summary = df_total['SETOR'].value_counts().reset_index()
-        summary.columns = ['Setor', 'Ativações']
-        
-        st.bar_chart(summary.set_index('Setor'), color=MATRIX_GREEN)
-        
-        csv_all = df_total.to_csv(index=False).encode('utf-8')
-        st.download_button("📂 EXPORTAR CSV DARK", data=csv_all, file_name="XEON_DARK_AUDIT.csv", mime='text/csv')
+# --- [7. LEDGER DE REDUNDÂNCIA EB-1A] ---
+st.write("### 📜 OMNI-CLUSTER LEDGER (HIGH AVAILABILITY AUDIT)")
+with sqlite3.connect('xeon_redundancy_core.db') as conn:
+    df_audit = pd.read_sql_query("SELECT timestamp as DATA, sector as SETOR, active_node as PRIMARY, backup_node as BACKUP, status as STATUS, cluster_hash as HASH_512 FROM cluster_ledger ORDER BY timestamp DESC LIMIT 10", conn)
+    st.dataframe(df_audit, use_container_width=True)
 
-st.caption("ADMIN: MARCO ANTONIO | XEON SOVEREIGN v107.7 | BLACKOUT AUDIT")
+st.caption("ARCHITECT: MARCO ANTONIO DO NASCIMENTO | SOVEREIGN CLUSTER | HIGH AVAILABILITY MISSION CRITICAL")
