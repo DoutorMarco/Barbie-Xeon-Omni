@@ -6,7 +6,7 @@ import unicodedata
 import requests
 import textwrap
 from fpdf import FPDF
-from io import BytesIO  # MEMÓRIA BLINDADA
+from io import BytesIO
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
@@ -37,13 +37,14 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTESIO (CORREÇÃO DEFINITIVA)] ---
+# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTES PUROS (FIX)] ---
 def sanitize_to_pdf(text):
     if not text: return "N/A"
+    # Normalização rigorosa para evitar quebra de encode no PDF
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
 def generate_fixed_pdf_6pages(node_name, cpu, ai_report):
-    """Gera o dossiê de 6 páginas em BytesIO para estabilidade total no Streamlit Cloud"""
+    """Gera o dossiê de 6 páginas e retorna os bytes brutos para o Streamlit"""
     try:
         pdf = FPDF()
         pdf.set_margins(20, 20, 20)
@@ -81,13 +82,10 @@ def generate_fixed_pdf_6pages(node_name, cpu, ai_report):
                 pdf.ln(15); pdf.set_font("Courier", "B", 14)
                 pdf.cell(0, 10, "STATUS: NIW ELIGIBLE / MISSION SUCCESS", ln=True, align='C')
 
-        # O SEGREDO: Output para buffer binário puro
-        pdf_output = pdf.output(dest='S')
-        if isinstance(pdf_output, str):
-            return BytesIO(pdf_output.encode('latin-1'))
-        return BytesIO(pdf_output)
+        # O SEGREDO: Saída direta para bytes sem passar por string
+        return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
-        return BytesIO(f"ERRO: {str(e)}".encode('latin-1'))
+        return f"ERRO_FATAL: {str(e)}".encode('latin-1')
 
 # --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
@@ -127,11 +125,11 @@ def xeon_main():
             
             if st.session_state.get('active_node') == s:
                 rep = st.session_state.get('ai_rep', "Inicie o SCAN IA.")
-                # Geração de PDF via motor BytesIO
-                pdf_buffer = generate_fixed_pdf_6pages(s, cpu_val, rep)
+                # Geração de PDF via bytes puros
+                pdf_data = generate_fixed_pdf_6pages(s, cpu_val, rep)
                 st.download_button(
                     label=f"📥 BAIXAR EB-1A {s}", 
-                    data=pdf_buffer.getvalue(), 
+                    data=pdf_data, 
                     file_name=f"XEON_{s}.pdf", 
                     mime="application/pdf", 
                     key=f"dl_{i}"
@@ -145,9 +143,9 @@ def xeon_main():
         </script>""", height=0)
         st.session_state.vox = ""
 
-# --- [4. FINALIZAÇÃO] ---
-st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
+# --- [4. FINALIZAÇÃO SOBERANA] ---
+st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN}; letter-spacing: 5px;'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
 if 'ai_rep' not in st.session_state: st.session_state.ai_rep = ""
 if 'vox' not in st.session_state: st.session_state.vox = ""
 xeon_main()
-st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | R$ 1.000/H | MISSÃO CRÍTICA")
+st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | MISSION CRITICAL | US GOVT COMPATIBLE")
