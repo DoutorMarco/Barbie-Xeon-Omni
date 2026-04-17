@@ -10,37 +10,39 @@ from fpdf import FPDF
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 
-# --- [1. CONFIGURAÇÃO VISUAL MATRIX] ---
+# --- [1. FRONT-END SOBERANO - MATRIX BLACKOUT] ---
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
 
-st.set_page_config(page_title="XEON COMMAND v106.9", layout="wide", page_icon="🛰️")
+st.set_page_config(page_title="XEON COMMAND v107.1", layout="wide", page_icon="🛰️")
 
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
     [data-testid="stSidebar"] {{ background-color: {BLACKOUT} !important; border-right: 1px solid {MATRIX_GREEN}; }}
-    .status-box {{ border: 2px solid {MATRIX_GREEN}; padding: 12px; background: #000; border-left: 8px solid {MATRIX_GREEN}; margin-bottom: 10px; }}
-    button {{ border: 1px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; transition: 0.3s; font-size: 11px !important; }}
+    .status-box {{ border: 1px solid {MATRIX_GREEN}; padding: 15px; background: #000; border-radius: 2px; margin-bottom: 5px; min-height: 85px; }}
+    button {{ border: 1px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; border-radius: 12px !important; font-size: 10px !important; transition: 0.3s; }}
     button:hover {{ background: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 15px {MATRIX_GREEN}; }}
+    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 5px {MATRIX_GREEN}; }}
+    hr {{ border: 0.5px solid {MATRIX_GREEN}; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR DE AUDITORIA] ---
+# --- [2. MOTOR DE AUDITORIA OMNI-LINK] ---
 def init_db():
-    with sqlite3.connect('xeon_sovereign.db') as conn:
+    with sqlite3.connect('xeon_sovereign.db', check_same_thread=False) as conn:
         conn.execute('''CREATE TABLE IF NOT EXISTS activation_logs 
                      (timestamp TEXT, sector TEXT, token TEXT, qber REAL, mkt REAL, integrity_hash TEXT)''')
 
 def log_activation(sector, token, qber, mkt):
     raw_data = f"{sector}{token}{qber}{mkt}"
     i_hash = hashlib.sha256(raw_data.encode()).hexdigest()[:16]
-    with sqlite3.connect('xeon_sovereign.db') as conn:
+    with sqlite3.connect('xeon_sovereign.db', check_same_thread=False) as conn:
         conn.execute("INSERT INTO activation_logs VALUES (?,?,?,?,?,?)", 
                      (time.strftime('%H:%M:%S'), sector, token, qber, mkt, i_hash))
     return i_hash
 
-# --- [3. GERADOR DE DOSSIÊ (FIX: OUTPUT COMPATIBILITY)] ---
+# --- [3. MOTOR DE PDF (ESTABILIDADE TOTAL)] ---
 def generate_encrypted_dossier(sector, token, intel, i_hash):
     pdf = FPDF()
     pdf.add_page()
@@ -53,86 +55,65 @@ def generate_encrypted_dossier(sector, token, intel, i_hash):
         f"NODE TOKEN: {token}",
         f"TIMESTAMP: {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"INTEGRITY HASH: {i_hash}",
-        f"QUANTUM STATUS: {intel.get('q_status', 'SECURE')}",
         f"S&P 500 REF: {intel['mkt']:.2f}",
+        f"OMNI-LINK STATUS: ACTIVE",
         f"OPERATOR: ARQUITETO MARCO ANTONIO DO NASCIMENTO",
-        "-"*40,
-        "SISTEMA XEON v106.9 - PROTEÇÃO SOBERANA ATIVA."
+        "-"*45,
+        "SISTEMA XEON v107.1 - BLINDAGEM OMNI-LINK ATIVA."
     ]
     
     pdf.set_font("Courier", "", 10)
     for line in content:
         pdf.cell(0, 8, line, ln=True)
     
-    # FIX: Output compatível com fpdf e fpdf2
+    # Compatibilidade binária forçada
     try:
-        return pdf.output(dest='S').encode('latin-1') # Antigo fpdf
-    except (AttributeError, TypeError):
-        return bytes(pdf.output()) # Novo fpdf2
+        return pdf.output(dest='S').encode('latin-1')
+    except:
+        return bytes(pdf.output())
 
-# --- [4. TELEMETRIA REAL-TIME] ---
-if 'telemetry_history' not in st.session_state:
-    st.session_state.telemetry_history = pd.DataFrame(columns=['Time', 'QBER', 'CPU', 'Latência'])
-
-@st.cache_data(ttl=2)
+# --- [4. TELEMETRIA E INTELIGÊNCIA] ---
+@st.cache_data(ttl=3)
 def fetch_intel():
-    qber, cpu, ping = random.uniform(1.0, 3.5), random.uniform(15, 45), random.uniform(5, 12)
+    qber = random.uniform(1.0, 3.2)
     try: mkt = yf.Ticker("^GSPC").fast_info['last_price']
-    except: mkt = 5125.60
-    
-    new_row = pd.DataFrame([[time.strftime('%H:%M:%S'), qber, cpu, ping]], columns=['Time', 'QBER', 'CPU', 'Latência'])
-    st.session_state.telemetry_history = pd.concat([st.session_state.telemetry_history, new_row]).tail(20)
-    return {"mkt": mkt, "qber": qber, "cpu": cpu, "ping": f"{ping:.2f} ms", "q_status": "SECURE/ENCRYPTED"}
+    except: mkt = 5128.90
+    return {"mkt": mkt, "qber": qber, "status": "ACTIVE"}
 
-# --- [5. INTERFACE PRINCIPAL] ---
+# --- [5. INTERFACE DE COMANDO] ---
 init_db()
 intel = fetch_intel()
-setores = ["CRIPTOGRAFIA QKD", "DEFESA gRPC", "SIGINT/ELINT", "GOVERNANÇA NIW", "FIBER SHIELD", "NEURAL AUDIT", "SATELLITE LINK", "QUANTUM STORAGE"]
-
-st.title("🛰️ XEON COMMAND v106.9 | OMNI-ACTIVATION")
+setores = ["CRIPTO QKD", "DEFESA gRPC", "SIGINT/ELINT", "NIW GOV", "FIBER SHIELD", "NEURAL AUDIT", "SAT LINK", "Q-STORAGE"]
 
 with st.sidebar:
-    st.header("⚡ COMANDO GLOBAL")
-    # NOVO: Ativação em Massa
-    if st.button("🔥 OMNI-ACTIVATION (ALL NODES)"):
-        st.session_state.omni_active = True
-        msg = "Iniciando ativação em massa de todos os nós soberanos. Arquiteto Marco Antonio, a rede está sob seu controle total."
-        components.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{msg}'));</script>", height=0)
+    st.markdown("### 🔥 COMANDO GLOBAL")
+    if st.button("🚀 OMNI-ACTIVATION (ALL NODES)"):
         for s in setores:
-            tk = hashlib.md5(f"{s}{time.time()}".encode()).hexdigest().upper()[:10]
+            tk = hashlib.md5(f"{s}{time.time()}".encode()).hexdigest().upper()[:8]
             log_activation(s, tk, intel['qber'], intel['mkt'])
+        st.success("OMNI-LINK ESTABELECIDO")
+        # Alerta de voz
+        msg = "Ativação Omni Link realizada. Todos os oito nós da rede Xeon foram integrados com sucesso. Soberania técnica confirmada."
+        components.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{msg}'));</script>", height=0)
 
-tab_ops, tab_ledger = st.tabs(["🎮 OPERAÇÕES", "📜 AUDITORIA"])
-
-with tab_ops:
-    c1, c2 = st.columns([1, 2.5])
-    with c1:
-        st.metric("S&P 500", f"{intel['mkt']:.2f}")
-        st.metric("QBER", f"{intel['qber']:.2f}%")
-        st.metric("CPU LOAD", f"{intel['cpu']:.1f}%")
-
-    with c2:
-        line_opt = {"backgroundColor": "#000", "xAxis": {"type": "category", "data": st.session_state.telemetry_history['Time'].tolist()},
-                    "series": [{"name": "CPU", "type": "line", "data": st.session_state.telemetry_history['CPU'].tolist(), "color": MATRIX_GREEN}]}
-        st_echarts(options=line_opt, height="280px")
+# Dashboard Superior
+c1, c2, c3 = st.columns(3)
+with c1: st.metric("OMNI-LINK STATUS", "ESTÁVEL")
+with c2: st.metric("QBER MÉDIO", f"{intel['qber']:.2f}%")
+with c3: st.metric("S&P 500", f"{intel['mkt']:.2f}")
 
 st.divider()
 
-# --- [6. MATRIZ DE NÓS] ---
+# --- [6. MATRIZ DE NÓS (8 MÓDULOS)] ---
 cols = st.columns(4)
 for i, s in enumerate(setores):
     with cols[i % 4]:
         st.markdown(f"<div class='status-box'><small>NÓ 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
         if st.button(f"🚀 ATIVAR + DOSSIÊ", key=f"btn_{i}"):
-            tk = hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:10]
+            tk = hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:8]
             ih = log_activation(s, tk, intel['qber'], intel['mkt'])
             pdf_data = generate_encrypted_dossier(s, tk, intel, ih)
-            st.success(f"ONLINE: {tk}")
             st.download_button("📥 DOSSIÊ", data=pdf_data, file_name=f"XEON_{tk}.pdf", key=f"dl_{i}")
 
-with tab_ledger:
-    with sqlite3.connect('xeon_sovereign.db') as conn:
-        df_l = pd.read_sql_query("SELECT * FROM activation_logs ORDER BY timestamp DESC", conn)
-        st.dataframe(df_l, use_container_width=True)
-
-st.caption("ARQUITETO: MARCO ANTONIO | XEON SOVEREIGN v106.9 | TOTAL OMNI-ACCESS")
+st.divider()
+st.caption(f"ARQUITETO: MARCO ANTONIO | XEON SOVEREIGN v107.1 | OMNI-LINK ACTIVE")
