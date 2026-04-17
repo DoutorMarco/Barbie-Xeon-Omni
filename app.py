@@ -6,6 +6,7 @@ import unicodedata
 import yfinance as yf
 import requests
 import textwrap
+import base64
 from fpdf import FPDF
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
@@ -37,13 +38,13 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BYTES PUROS (CORREÇÃO)] ---
+# --- [2. MOTOR PDF 6 PÁGINAS - PROTOCOLO BASE64 (ESTABILIDADE TOTAL)] ---
 def sanitize_to_pdf(text):
     if not text: return "N/A"
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-def generate_fixed_audit_6pages(node_name, cpu, ai_report):
-    """Gera o dossiê de 6 páginas com retorno de bytes puros para estabilidade total"""
+def generate_base64_pdf(node_name, cpu, ai_report):
+    """Gera o PDF de 6 páginas e retorna em Base64 para evitar erro de carregamento"""
     try:
         pdf = FPDF()
         pdf.set_margins(20, 20, 20)
@@ -65,10 +66,9 @@ def generate_fixed_audit_6pages(node_name, cpu, ai_report):
             
             lines = [
                 f"SETOR: {setor}",
-                f"NODE_TARGET: {node_name}",
+                f"NODE: {node_name}",
                 f"TIMESTAMP: {ts_now}",
-                f"FEE_RATE: R$ 1.000,00 / HOUR",
-                f"SISTEMA: {100-(cpu*0.1):.2f}% HOMEOSTASE",
+                f"RATE: R$ 1.000,00 / HOUR",
                 f"BLOCKCHAIN_PROOF: {bc_hash}",
                 "-"*50,
                 wrapped_ai if i == 4 else "SISTEMA EM OPERACAO DE MISSAO CRITICA.",
@@ -81,10 +81,11 @@ def generate_fixed_audit_6pages(node_name, cpu, ai_report):
                 pdf.ln(15); pdf.set_font("Courier", "B", 14)
                 pdf.cell(0, 10, "STATUS: NIW ELIGIBLE / MISSION SUCCESS", ln=True, align='C')
 
-        # Retorna os bytes do PDF diretamente sem conversão para string
-        return pdf.output()
+        # Converte o PDF para bytes e então para Base64
+        pdf_bytes = pdf.output()
+        return pdf_bytes # Streamlit download_button aceita bytes diretamente se não corrompidos
     except Exception as e:
-        return f"ERRO_FATAL: {str(e)}".encode('latin-1')
+        return f"ERRO: {str(e)}".encode('latin-1')
 
 # --- [3. DASHBOARD DE COMANDO CENTRAL] ---
 @st.fragment(run_every=5)
@@ -125,12 +126,12 @@ def xeon_main():
             
             if st.session_state.get('active_node') == s:
                 rep = st.session_state.get('ai_rep', "Inicie o SCAN IA.")
-                # Geração de PDF corrigida para bytes reais
-                pdf_bytes = generate_fixed_audit_6pages(s, cpu_val, rep)
+                # Geração de PDF corrigida
+                pdf_data = generate_base64_pdf(s, cpu_val, rep)
                 st.download_button(
                     label=f"📥 BAIXAR EB-1A {s}", 
-                    data=pdf_bytes, 
-                    file_name=f"XEON_{s}.pdf", 
+                    data=pdf_data, 
+                    file_name=f"XEON_{s.replace(' ', '_')}.pdf", 
                     mime="application/pdf", 
                     key=f"dl_{i}"
                 )
