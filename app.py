@@ -4,10 +4,10 @@ import psutil
 import unicodedata
 import yfinance as yf
 from fpdf import FPDF
-import base64  # Protocolo de Transmissão Blindada
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
+import textwrap # Garante que o texto caiba no PDF
 
 # --- [1. CONFIGURAÇÃO SOBERANA - BLACKOUT MATRIX] ---
 MATRIX_GREEN = "#00FF41"
@@ -34,45 +34,50 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF - PROTOCOLO BASE64 (CORREÇÃO DEFINITIVA)] ---
+# --- [2. MOTOR PDF - PROTOCOLO DE RESILIÊNCIA TOTAL] ---
 def sanitize_text(text):
     if not text: return "N/A"
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-def get_pdf_download_link(node, cpu, ai_report):
-    """Gera o PDF e retorna os bytes puros para o Streamlit"""
+def get_pdf_bytes(node, cpu, ai_report):
+    """Gera o PDF blindado contra erros de espaço horizontal"""
     pdf = FPDF()
-    pdf.set_margins(15, 15, 15)
+    pdf.set_margins(20, 20, 20) # Margens amplas para segurança
     pdf.add_page()
     
-    # Estética Blackout no PDF
+    # Fundo Blackout
     pdf.set_fill_color(0, 0, 0)
     pdf.rect(0, 0, 210, 297, 'F')
     
     pdf.set_text_color(0, 255, 65)
     pdf.set_font("Courier", "B", 16)
     pdf.cell(0, 15, sanitize_text(f"XEON AUDIT: {node}"), ln=True, align='C')
-    pdf.ln(5)
+    pdf.ln(10)
     
     pdf.set_font("Courier", "", 10)
     ts = time.strftime('%Y-%m-%d %H:%M:%S')
     
-    content = [
+    # Metadados e Parecer com Quebra de Linha Forçada (textwrap)
+    report_safe = sanitize_text(ai_report)
+    wrapped_report = textwrap.fill(report_safe, width=65) # Força quebra a cada 65 caracteres
+    
+    lines = [
         f"TIMESTAMP: {ts}",
         f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
-        f"FEE RATE: R$ 1.000,00 / HORA",
-        f"HOMEOSTASE: {100-(cpu*0.1):.2f}%",
-        "-"*45,
+        f"CONSULTORIA: R$ 1.000,00 / HORA",
+        f"SISTEMA: {100-(cpu*0.1):.2f}% HOMEOSTASE",
+        "-"*40,
         "PARECER TECNICO IA:",
-        sanitize_text(ai_report),
-        "-"*45
+        wrapped_report,
+        "-"*40
     ]
     
-    for line in content:
-        pdf.multi_cell(0, 8, line)
+    for line in lines:
+        # multi_cell com w=0 garante o uso de toda a largura disponível
+        pdf.multi_cell(0, 7, line, align='L')
     
-    # O Ponto Crítico: Retornar bytes puros do buffer
-    return pdf.output(dest='S').encode('latin-1')
+    # Retorna os bytes do PDF diretamente
+    return pdf.output()
 
 # --- [3. DASHBOARD DE COMANDO] ---
 @st.fragment(run_every=5)
@@ -82,7 +87,7 @@ def xeon_main():
     
     with c1:
         st.metric("STABILITY", "NOMINAL")
-        st.metric("RATE", "R$ 1.000/h")
+        st.metric("FEE RATE", "R$ 1.000/h")
         try:
             usd = yf.Ticker("USDBRL=X").history(period="1d")['Close'].iloc[-1]
             st.metric("MARKET USD", f"{usd:.2f}")
@@ -96,15 +101,19 @@ def xeon_main():
         if st.button("🧠 SCAN IA"):
             with st.status("Processando...", expanded=False) as s:
                 if client:
-                    res = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{"role": "user", "content": f"Analise o valor técnico do sistema XEON (R$ 1000/h) para visto EB1A."}]
-                    )
-                    st.session_state.ai_report = res.choices.message.content
-                    st.session_state.vox = "Relatório de inteligência gerado."
-                    s.update(label="Concluído", state="complete")
+                    try:
+                        res = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=[{"role": "user", "content": f"Analise a homeostase de {cpu_val}% para visto EB1A."}]
+                        )
+                        st.session_state.ai_report = res.choices.message.content
+                        st.session_state.vox = "Análise concluída."
+                        s.update(label="Concluído", state="complete")
+                    except:
+                        st.session_state.ai_report = "Erro na API OpenAI."
+                        s.update(label="Erro", state="error")
                 else:
-                    st.session_state.ai_report = "IA em modo local (Offline)."
+                    st.session_state.ai_report = "IA Offline."
 
     st.divider()
 
@@ -115,16 +124,16 @@ def xeon_main():
             st.markdown(f"<div class='node-card'><small>NODE 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
             if st.button(f"ATIVAR {s}", key=f"act_{i}"):
                 st.session_state.active_node = s
-                st.session_state.vox = f"Nó {s} ativado."
+                st.session_state.vox = f"Nó {s} operacional."
             
             if st.session_state.get('active_node') == s:
-                report = st.session_state.get('ai_report', "Execute o Scan de IA.")
+                rep = st.session_state.get('ai_report', "Sem dados de IA.")
                 # Geração de PDF corrigida
-                pdf_bytes = get_pdf_download_link(s, cpu_val, report)
+                pdf_data = get_pdf_bytes(s, cpu_val, rep)
                 
                 st.download_button(
-                    label="📥 BAIXAR DOSSIÊ",
-                    data=pdf_bytes,
+                    label="📥 BAIXAR EB-1A PDF",
+                    data=pdf_bytes if 'pdf_bytes' in locals() else pdf_data,
                     file_name=f"XEON_{s}.pdf",
                     mime="application/pdf",
                     key=f"dl_{i}"
