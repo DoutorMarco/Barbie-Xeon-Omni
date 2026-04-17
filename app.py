@@ -4,6 +4,7 @@ import psutil
 import unicodedata
 import yfinance as yf
 from fpdf import FPDF
+from io import BytesIO  # O segredo da estabilidade
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
@@ -33,34 +34,27 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF - PROTOCOLO DE RESILIÊNCIA ABSOLUTA] ---
+# --- [2. MOTOR PDF - PROTOCOLO BYTESIO BLINDADO] ---
 def sanitize_text(text):
     if not text: return "N/A"
-    # Remove qualquer caractere que não seja latin-1 para evitar crash de encode
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-def get_pdf_bytes_blindado(node, cpu, ai_report):
-    """Gera o PDF usando escrita linear para evitar o erro de horizontal space"""
+def generate_pdf_final_stream(node, cpu, ai_report):
+    """Gera o PDF diretamente em um stream de bytes compatível com o Streamlit"""
     try:
         pdf = FPDF()
         pdf.set_margins(20, 20, 20)
         pdf.add_page()
+        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
         
-        # Fundo Blackout
-        pdf.set_fill_color(0, 0, 0)
-        pdf.rect(0, 0, 210, 297, 'F')
-        
-        # Cabeçalho
         pdf.set_text_color(0, 255, 65)
         pdf.set_font("Courier", "B", 16)
         pdf.cell(0, 15, sanitize_text(f"XEON AUDIT: {node}"), ln=True, align='C')
         pdf.ln(10)
         
-        # Corpo Técnico
         pdf.set_font("Courier", "", 10)
         ts = time.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Metadados fixos
         meta = [
             f"TIMESTAMP: {ts}",
             f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
@@ -73,24 +67,20 @@ def get_pdf_bytes_blindado(node, cpu, ai_report):
         for m in meta:
             pdf.cell(0, 8, sanitize_text(m), ln=True)
         
-        # Processamento do Parecer da IA (Blindagem contra Horizontal Space)
-        # Forçamos uma largura de 60 caracteres para nunca estourar a margem
         report_safe = sanitize_text(ai_report)
-        wrapped_lines = textwrap.wrap(report_safe, width=60)
-        
+        wrapped_lines = textwrap.wrap(report_safe, width=65)
         for line in wrapped_lines:
             pdf.cell(0, 7, line, ln=True)
             
         pdf.cell(0, 8, "-"*45, ln=True)
         
-        return pdf.output()
+        # O PONTO CRÍTICO: Converter para bytes estáveis
+        pdf_output = pdf.output(dest='S')
+        if isinstance(pdf_output, str):
+            return pdf_output.encode('latin-1')
+        return bytes(pdf_output)
     except Exception as e:
-        # Se tudo falhar, retorna um PDF de emergência com o erro
-        fail_pdf = FPDF()
-        fail_pdf.add_page()
-        fail_pdf.set_font("Courier", "B", 12)
-        fail_pdf.cell(0, 10, "ERRO CRITICO DE RENDERIZACAO", ln=True)
-        return fail_pdf.output()
+        return f"ERRO FATAL: {str(e)}".encode('latin-1')
 
 # --- [3. DASHBOARD DE COMANDO] ---
 @st.fragment(run_every=5)
@@ -117,7 +107,7 @@ def xeon_main():
                     try:
                         res = client.chat.completions.create(
                             model="gpt-4o",
-                            messages=[{"role": "user", "content": f"Analise brevemente o valor de R$ 1000/h deste sistema de {cpu_val}% carga para o visto EB1A."}]
+                            messages=[{"role": "user", "content": f"Analise o valor de R$ 1000/h deste sistema para o visto EB1A."}]
                         )
                         st.session_state.ai_report = res.choices.message.content
                         st.session_state.vox = "Analise concluída."
@@ -141,11 +131,12 @@ def xeon_main():
             
             if st.session_state.get('active_node') == s:
                 rep = st.session_state.get('ai_report', "Aguardando scan.")
-                # Geração de PDF usando o motor blindado
-                pdf_data = get_pdf_bytes_blindado(s, cpu_val, rep)
+                # Geração de PDF definitiva em bytes
+                pdf_data = generate_pdf_final_stream(s, cpu_val, rep)
+                
                 st.download_button(
                     label="📥 BAIXAR EB-1A PDF", 
-                    data=pdf_bytes if 'pdf_bytes' in locals() else pdf_data, 
+                    data=pdf_data, 
                     file_name=f"XEON_{s}.pdf", 
                     mime="application/pdf", 
                     key=f"dl_{i}"
