@@ -5,7 +5,7 @@ import psutil
 import unicodedata
 import yfinance as yf
 from fpdf import FPDF
-from io import BytesIO  # Buffer de memória para PDF seguro
+import base64
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 from openai import OpenAI
@@ -14,7 +14,7 @@ from openai import OpenAI
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
 
-st.set_page_config(page_title="XEON COMMAND v131.0 | R$ 1.000/h", layout="wide")
+st.set_page_config(page_title="XEON COMMAND v131.0", layout="wide")
 
 try:
     client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -34,18 +34,17 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF BLINDADO (BYTES IO)] ---
+# --- [2. MOTOR PDF - PROTOCOLO DE BYTES PUROS] ---
 def sanitize_text(text):
     if not text: return "N/A"
     return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
-def generate_pdf_buffer(node, cpu, ai_report):
-    """Gera o PDF e retorna um buffer de bytes pronto para download"""
+def generate_pdf_final(node, cpu, ai_report):
+    """Gera PDF e garante o retorno em formato de bytes pronto para o Streamlit"""
     try:
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F') # Fundo Blackout
-        
+        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
         pdf.set_text_color(0, 255, 65)
         pdf.set_font("Courier", "B", 16)
         pdf.cell(0, 15, sanitize_text(f"XEON AUDIT: {node}"), ln=True, align='C')
@@ -53,29 +52,23 @@ def generate_pdf_buffer(node, cpu, ai_report):
         
         pdf.set_font("Courier", "", 10)
         ts = time.strftime('%Y-%m-%d %H:%M:%S')
-        
-        lines = [
+        content = [
             f"TIMESTAMP: {ts}",
             f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
-            f"FEE: R$ 1.000,00 / HOUR",
-            f"STABILITY: {100-(cpu*0.1):.2f}%",
+            f"VALOR: R$ 1.000,00 / HORA",
+            f"ESTABILIDADE: {100-(cpu*0.1):.2f}%",
             "-"*40,
-            "ANALYSIS:",
+            "PARECER TECNICO IA:",
             sanitize_text(ai_report),
             "-"*40
         ]
-        
-        for line in lines:
+        for line in content:
             pdf.multi_cell(0, 8, line)
         
-        # Correção Crítica: Gerar output como bytes e colocar no BytesIO
-        pdf_bytes = pdf.output(dest='S')
-        if isinstance(pdf_bytes, str):
-            pdf_bytes = pdf_bytes.encode('latin-1')
-            
-        return pdf_bytes
+        # O segredo da estabilidade: output em bytes (bytearray)
+        return pdf.output()
     except Exception as e:
-        return f"Erro: {str(e)}".encode('latin-1')
+        return f"ERRO INTERNO: {str(e)}".encode('latin-1')
 
 # --- [3. DASHBOARD DE COMANDO] ---
 @st.fragment(run_every=5)
@@ -95,16 +88,16 @@ def xeon_main():
         st_echarts(options={"backgroundColor": "transparent", "series": [{"type": 'gauge', "data": [{"value": cpu_val}], "detail": {"color": MATRIX_GREEN}}]}, height="220px")
 
     with c3:
-        st.metric("TARGET", "EB-1A")
+        st.metric("EB-1A READY", "YES")
         if st.button("🧠 SCAN IA"):
             with st.status("Processando...", expanded=False) as s:
                 if client:
                     res = client.chat.completions.create(
                         model="gpt-4o",
-                        messages=[{"role": "user", "content": f"Analise estabilidade de {cpu_val}% para visto EB1A."}]
+                        messages=[{"role": "user", "content": f"Analise a homeostase de {cpu_val}% para visto EB1A."}]
                     )
                     st.session_state.ai_report = res.choices.message.content
-                    st.session_state.vox = "Fisiologia digital analisada."
+                    st.session_state.vox = "Análise concluída."
                     s.update(label="Concluído", state="complete")
                 else:
                     st.session_state.ai_report = "IA Offline."
@@ -121,11 +114,11 @@ def xeon_main():
                 st.session_state.vox = f"Nó {s} operacional."
             
             if st.session_state.get('active_node') == s:
-                rep = st.session_state.get('ai_report', "Sem dados de IA.")
-                # Geração de PDF segura
-                pdf_data = generate_pdf_buffer(s, cpu_val, rep)
+                rep = st.session_state.get('ai_report', "Aguardando Scan de IA.")
+                # Geração de PDF e download direto
+                pdf_data = generate_pdf_final(s, cpu_val, rep)
                 st.download_button(
-                    label="📥 DOWNLOAD PDF", 
+                    label="📥 BAIXAR DOSSIÊ", 
                     data=pdf_data, 
                     file_name=f"XEON_{s}.pdf", 
                     mime="application/pdf",
@@ -134,7 +127,7 @@ def xeon_main():
 
     if st.session_state.get('vox'):
         components.html(f"<script>window.speechSynthesis.cancel(); var m = new SpeechSynthesisUtterance('{st.session_state.vox}'); m.lang='pt-BR'; window.speechSynthesis.speak(m);</script>", height=0)
-        st.session_state.vox = ""
+        st.session_state.voice = ""
 
 # --- [4. FINALIZAÇÃO] ---
 st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
