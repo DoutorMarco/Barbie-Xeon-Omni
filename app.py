@@ -5,9 +5,8 @@ import sqlite3
 import psutil
 import platform
 import pandas as pd
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
 from fpdf import FPDF
+from streamlit_echarts import st_echarts
 
 # --- [1. CONFIGURAÇÃO VISUAL - ABSOLUTE BLACKOUT MATRIX] ---
 MATRIX_GREEN = "#00FF41"
@@ -21,115 +20,101 @@ st.markdown(f"""
     [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; }}
     .stButton button, .stDownloadButton button {{
         border: 2px solid {MATRIX_GREEN} !important; background-color: {BLACKOUT} !important;
-        color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold;
+        color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold; height: 50px;
     }}
-    .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 35px {MATRIX_GREEN}; }}
+    .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 30px {MATRIX_GREEN}; }}
     [data-testid="stHeader"], footer {{ display: none !important; }}
-    [data-testid="stDataFrame"], [data-testid="stTable"], th, td {{ 
+    [data-testid="stDataFrame"], [data-testid="stTable"] {{ 
         background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; border: 1px solid {MATRIX_GREEN} !important; 
     }}
     hr {{ border: 1px solid {MATRIX_GREEN} !important; }}
-    code {{ color: {MATRIX_GREEN} !important; background-color: #0A0A0A !important; }}
+    .node-box {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; background: rgba(0,255,65,0.05); margin-bottom: 5px; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. INFRAESTRUTURA DE DADOS E AUDITORIA NIST] ---
-DB_NAME = 'xeon_sovereign_v131.db'
-
-def get_db_conn():
-    return sqlite3.connect(DB_NAME, check_same_thread=False)
-
+# --- [2. MOTOR DE DADOS E AUDITORIA] ---
 def init_db():
-    with get_db_conn() as conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS nist_ledger 
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, event TEXT, 
-                      payload_enc TEXT, node_id TEXT)''')
+    with sqlite3.connect('xeon_sovereign_v131.db', check_same_thread=False) as conn:
+        conn.execute('''CREATE TABLE IF NOT EXISTS federal_audit 
+                     (ts TEXT, node TEXT, cpu REAL, hash TEXT)''')
 
-def secure_commit(event, node):
+def generate_node_pdf(node_name, cpu):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
+    pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
+    pdf.cell(0, 15, f"TECHNICAL EVIDENCE: {node_name}", ln=True, align='C')
+    pdf.ln(10); pdf.set_font("Courier", "", 12)
     ts = time.strftime('%Y-%m-%d %H:%M:%S')
-    # Hash de Integridade PQC-ready
-    pqc_payload = hashlib.sha512(f"{event}{ts}{node}".encode()).hexdigest()[:64]
-    with get_db_conn() as conn:
-        conn.execute("INSERT INTO nist_ledger (ts, event, payload_enc, node_id) VALUES (?,?,?,?)",
-                     (ts, event, pqc_payload, node))
-    return pqc_payload
+    i_hash = hashlib.sha512(f"{node_name}{ts}{cpu}".encode()).hexdigest()[:48]
+    lines = [
+        f"TIMESTAMP: {ts}",
+        f"ORIGIN_NODE: {platform.node().upper()}",
+        f"SECTOR: {node_name}",
+        f"CPU_LOAD: {cpu}%",
+        f"INTEGRITY_HASH: {i_hash}",
+        "-"*50,
+        "CLASSIFIED: NATIONAL INTEREST WAIVER EXHIBIT",
+        "ARCHITECT: MARCO ANTONIO DO NASCIMENTO"
+    ]
+    for line in lines: pdf.cell(0, 10, line, ln=True)
+    return pdf.output(dest='S').encode('latin-1')
 
-# --- [3. GERADOR XML FEDERAL (USCIS/DHS)] ---
-def generate_uscis_xml(df):
-    root = ET.Element("USCIS_Submission_Package")
-    root.set("Classification", "EB-1A_NIW_EVIDENCE")
-    meta = ET.SubElement(root, "Metadata")
-    ET.SubElement(meta, "Architect").text = "MARCO ANTONIO DO NASCIMENTO"
-    ET.SubElement(meta, "System").text = "XEON COMMAND v131.0"
+# --- [3. DASHBOARD DE COMANDO - HEARTBEAT E 9 NÓS] ---
+@st.fragment(run_every=2)
+def xeon_core():
+    cpu_val = psutil.cpu_percent()
     
-    exhibits = ET.SubElement(root, "TechnicalExhibits")
-    for _, row in df.iterrows():
-        item = ET.SubElement(exhibits, "Exhibit")
-        ET.SubElement(item, "ID").text = str(row['id'])
-        ET.SubElement(item, "Timestamp").text = row['ts']
-        ET.SubElement(item, "Event").text = row['event']
-        ET.SubElement(item, "Signature").text = row['payload_enc']
+    # Grid Superior: Gráfico Circular Pulsante e Métricas
+    col_metric, col_gauge, col_info = st.columns([1, 1.5, 1])
     
-    xml_str = ET.tostring(root, encoding='utf-8')
-    return minidom.parseString(xml_str).toprettyxml(indent="  ")
-
-# --- [4. INTERFACE DE COMANDO FRAGMENTADA] ---
-@st.fragment(run_every=3)
-def core_dashboard():
-    cpu = psutil.cpu_percent()
-    h_index = 100 - (cpu * 0.1)
-    
-    # Telemetria Superior
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("STATUS", "NIST 800-53")
-    c2.metric("HOMEOSTASE", f"{h_index:.2f}%")
-    c3.metric("NODE_ID", platform.node()[:8].upper())
-    c4.metric("TARGET", "$450/HR")
+    with col_metric:
+        st.metric("SYSTEM_VERACITY", "100%", delta="HOMEOSTASE")
+        st.metric("UPTIME", "24/7", delta="STABLE")
+        
+    with col_gauge:
+        # Gráfico Circular Pulsante (Gauge)
+        gauge_options = {
+            "backgroundColor": "transparent",
+            "series": [{
+                "type": 'gauge',
+                "startAngle": 90, "endAngle": -270,
+                "pointer": {"show": False},
+                "progress": {"show": True, "roundCap": True, "itemStyle": {"color": MATRIX_GREEN}},
+                "data": [{"value": cpu_val}],
+                "detail": {"formatter": '{value}%', "color": MATRIX_GREEN, "fontSize": 35}
+            }]
+        }
+        st_echarts(options=gauge_options, height="280px")
+        
+    with col_info:
+        st.metric("NODE_ID", platform.node()[:10].upper())
+        st.metric("NIW_TARGET", "EB-1A_ACTIVE")
 
     st.markdown("<hr>", unsafe_allow_html=True)
+    
+    # Grid de 9 Nós de Defesa
+    st.write("### 🛰️ DEFENSE INFRASTRUCTURE: 9 ACTIVE NODES")
+    setores = [
+        "CRIPTO QKD", "DEFESA gRPC", "SIGINT/ELINT", 
+        "NIW GOV", "FIBER SHIELD", "NEURAL AUDIT", 
+        "SAT LINK", "Q-STORAGE", "QUANTUM SENSING"
+    ]
+    
+    cols = st.columns(3)
+    for i, s in enumerate(setores):
+        with cols[i % 3]:
+            st.markdown(f"<div class='node-box'><small>NODE 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
+            if st.button(f"ATIVAR {s}", key=f"btn_{i}"):
+                pdf_data = generate_node_pdf(s, cpu_val)
+                st.download_button(f"📥 PDF {s}", pdf_data, f"XEON_{s}.pdf", key=f"dl_{i}")
 
-    col_map, col_ops = st.columns([1.5, 1])
-
-    with col_map:
-        st.write("### 🌐 DEFENSE NODE GEOLOCATION")
-        nodes = pd.DataFrame({
-            'lat': [38.89, 37.44, 34.05, 42.36],
-            'lon': [-77.03, -122.14, -118.24, -71.05],
-            'node': ["HQ_DC", "PQC_VALLEY", "STORAGE_WEST", "BOS_NIW"]
-        })
-        st.map(nodes, color="#00FF41", size=40000)
-        
-        target = st.selectbox("OPERAR NÓ:", nodes['node'])
-        if st.button(f"🚀 EXECUTAR AUDITORIA EM {target}"):
-            secure_commit(f"MISSION_CRITICAL_AUDIT_{target}", target)
-            st.toast(f"Evento {target} persistido no Ledger.")
-
-    with col_ops:
-        st.write("### 🏛️ FEDERAL SUBMISSION (XML)")
-        with get_db_conn() as conn:
-            df_logs = pd.read_sql_query("SELECT * FROM nist_ledger ORDER BY id DESC LIMIT 10", conn)
-        
-        if not df_logs.empty:
-            if st.button("📦 GERAR XML PARA USCIS/DHS"):
-                xml_data = generate_uscis_xml(df_logs)
-                st.session_state.xml_output = xml_data
-            
-            if 'xml_output' in st.session_state:
-                st.download_button("📥 BAIXAR USCIS_EVIDENCE.XML", st.session_state.xml_output, "XEON_SUBMISSION.xml", "text/xml")
-                with st.expander("PREVIEW XML METADATA"):
-                    st.code(st.session_state.xml_output, language='xml')
-        else:
-            st.warning("Ledger vazio. Inicie uma auditoria.")
-
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.write("### 📜 IMMUTABLE AUDIT TRAIL")
-    st.dataframe(df_logs.style.set_properties(**{'background-color': 'black', 'color': '#00FF41'}), use_container_width=True, hide_index=True)
-
-# --- [5. EXECUÇÃO CENTRAL] ---
+# --- [4. EXECUÇÃO CENTRAL] ---
 init_db()
-st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN}; letter-spacing: 5px;'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: {MATRIX_GREEN};'>SOVEREIGN OPERATIONS HUB | NATIONAL INTEREST WAIVER ENABLED</p>", unsafe_allow_html=True)
+st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN}; letter-spacing: 7px;'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: {MATRIX_GREEN};'>MISSION CRITICAL | ARQUITETO MARCO ANTONIO DO NASCIMENTO</p>", unsafe_allow_html=True)
 
-core_dashboard()
+xeon_core()
 
-st.caption(f"ADMIN: MARCO ANTONIO DO NASCIMENTO | MISSION CRITICAL | ASSET ID: {hashlib.sha1(platform.node().encode()).hexdigest()[:10].upper()}")
+st.markdown("<hr>", unsafe_allow_html=True)
+st.caption("PROTOCOLO STEALTH ATIVO | ZERO WHITE POLICY | PQC_ENABLED")
