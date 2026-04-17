@@ -22,28 +22,40 @@ try:
 except:
     client = None
 
-# Eliminação total de elementos brancos e interfaces padrão
+# ELIMINAÇÃO AGRESSIVA DE BRANCO E RESET DE INTERFACE
 st.markdown(f"""
     <style>
+    /* Reset Geral para Fundo Preto */
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
-    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; }}
+    
+    /* Eliminação do Bloco Branco em Code e Pre */
+    code, pre, [data-testid="stCodeBlock"] {{ 
+        background-color: {BLACKOUT} !important; 
+        color: {MATRIX_GREEN} !important; 
+        border: 1px solid {MATRIX_GREEN} !important; 
+    }}
+    
+    /* Reset de Metadados e Containers */
+    [data-testid="stHeader"], footer, [data-testid="stSidebar"] {{ display: none !important; }}
+    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; font-size: 2rem; }}
+    
+    /* Estilização de Botões */
     .stButton button, .stDownloadButton button {{
         border: 2px solid {MATRIX_GREEN} !important; background-color: {BLACKOUT} !important;
         color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold; height: 50px;
     }}
-    .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 20px {MATRIX_GREEN}; }}
-    [data-testid="stHeader"], footer {{ display: none !important; }}
-    code {{ background-color: #051505 !important; color: #FF9900 !important; border: 1px solid {MATRIX_GREEN} !important; }}
-    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; margin-bottom: 5px; background: rgba(0,255,65,0.05); }}
+    .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 30px {MATRIX_GREEN}; }}
+    
     hr {{ border: 1px solid {MATRIX_GREEN} !important; }}
+    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; margin-bottom: 5px; background: rgba(0,255,65,0.05); }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- [2. MOTORES DE INFRAESTRUTURA REAL] ---
-def fetch_spacex_status():
+def fetch_spacex_ops():
     try:
         res = requests.get("https://spacexdata.com", timeout=2).json()
-        return f"FLIGHT_{res['flight_number']}: {res['name']} (ACTIVE)"
+        return f"FLIGHT_{res['flight_number']}: {res['name']} (ORBITAL_READY)"
     except: return "SPACEX_RELAY: ENCRYPTED_LINK"
 
 def get_blockchain_id(data):
@@ -73,8 +85,8 @@ def generate_sovereign_audit_6pages(cpu, ai_report, bc_hash):
             lines = [
                 f"SETOR: {setor}",
                 f"TIMESTAMP: {time.strftime('%H:%M:%S')}",
-                f"SPACEX_TELEMETRY: {fetch_spacex_status()}",
-                f"NEURALINK_SYNC: 99.8% (STABLE)",
+                f"SPACEX_TELEMETRY: {fetch_spacex_ops()}",
+                f"NEURALINK_STABILITY: 99.8% (ACTIVE)",
                 f"RATE: R$ 1.000,00 / HOUR",
                 f"BLOCKCHAIN_HASH: {bc_hash}",
                 "-"*50,
@@ -99,8 +111,14 @@ def xeon_main():
     
     with c1:
         st.metric("STABILITY", "NOMINAL")
-        st.metric("FEE", "R$ 1.000/h")
-        st.code(f"BLOCKCHAIN: ACTIVE\nSPACEX: {fetch_spacex_status()}", language="yaml")
+        st.write(f"<b style='color:{MATRIX_GREEN}; font-size:20px;'>R$ 1.000/h</b>", unsafe_allow_html=True)
+        # Substituição de st.code por st.markdown estilizado para evitar fundo branco
+        st.markdown(f"""
+            <div style='border:1px solid {MATRIX_GREEN}; padding:10px; font-family:monospace; background-color:{BLACKOUT};'>
+            BLOCKCHAIN: ACTIVE<br>
+            SPACEX: {fetch_spacex_ops()}
+            </div>
+        """, unsafe_allow_html=True)
 
     with c2:
         st_echarts(options={"backgroundColor": "transparent", "series": [{"type": 'gauge', "data": [{"value": cpu_val}], "detail": {"color": MATRIX_GREEN}}]}, height="220px")
@@ -114,29 +132,33 @@ def xeon_main():
             with st.status("Processando...", expanded=False) as s:
                 if client:
                     start = time.time()
-                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Analise a homeostase do sistema para o EB-1A."}])
+                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": "Analise a homeostase para o EB-1A."}])
                     st.session_state.neural_lat = int((time.time() - start) * 1000)
                     st.session_state.ai_rep = res.choices.message.content
-                    st.session_state.vox = f"Auditoria concluída em {st.session_state.neural_lat} milissegundos."
+                    st.session_state.vox = f"Auditoria concluída."
                     s.update(label="Concluído", state="complete")
-                else: st.session_state.ai_rep = "Modo Local."
+                else: st.session_state.ai_rep = "Modo Local Ativo."
 
     st.divider()
     st.subheader("📑 DOSSIÊ DE IMUTABILIDADE (6 PÁGINAS)")
     if st.button("🚀 REGISTRAR EM BLOCKCHAIN E GERAR PDF"):
-        report = st.session_state.get('ai_rep', "Sem dados.")
+        report = st.session_state.get('ai_rep', "Sem dados de IA.")
         bc_hash = get_blockchain_id(report + str(time.time()))
         pdf_full = generate_sovereign_audit_6pages(cpu_val, report, bc_hash)
         st.download_button("📥 BAIXAR DOSSIÊ CERTIFICADO", data=pdf_full, file_name=f"XEON_BLOCKCHAIN_{bc_hash[:8]}.pdf", mime="application/pdf")
 
     if st.session_state.get('vox'):
-        components.html(f"<script>window.speechSynthesis.cancel(); var m = new SpeechSynthesisUtterance('{st.session_state.vox}'); m.lang='pt-BR'; window.speechSynthesis.speak(m);</script>", height=0)
+        components.html(f"""<script>
+            window.speechSynthesis.cancel();
+            var m = new SpeechSynthesisUtterance('{st.session_state.vox}');
+            m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
+        </script>""", height=0)
         st.session_state.vox = ""
 
-# --- [5. FINALIZAÇÃO] ---
+# --- [5. FINALIZAÇÃO SOBERANA] ---
 st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN}; letter-spacing: 5px;'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
 if 'ai_rep' not in st.session_state: st.session_state.ai_rep = ""
 if 'vox' not in st.session_state: st.session_state.vox = ""
 if 'neural_lat' not in st.session_state: st.session_state.neural_lat = 0
 xeon_main()
-st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | MISSION CRITICAL | ZERO WHITE POLICY")
+st.caption("ADMIN: MARCO ANTONIO DO NASCIMENTO | MISSION CRITICAL | ZERO WHITE")
