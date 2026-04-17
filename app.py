@@ -2,9 +2,6 @@ import streamlit as st
 import time
 import hashlib
 import psutil
-import platform
-import asyncio
-import aiosqlite
 import unicodedata
 import yfinance as yf
 from fpdf import FPDF
@@ -31,60 +28,49 @@ st.markdown(f"""
         border: 2px solid {MATRIX_GREEN} !important; background-color: {BLACKOUT} !important;
         color: {MATRIX_GREEN} !important; border-radius: 0px !important; width: 100%; font-weight: bold;
     }}
-    .stButton button:hover {{ background-color: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; }}
     [data-testid="stHeader"], footer {{ display: none !important; }}
-    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; margin-bottom: 5px; }}
+    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; text-align: center; margin-bottom: 5px; background: rgba(0,255,65,0.05); }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR PDF BLINDADO (CORREÇÃO DE ESPAÇO E UNICODE)] ---
-def sanitize_text(text):
+# --- [2. MOTOR PDF BLINDADO (REMOÇÃO DE UNICODE ERROR)] ---
+def sanitize_to_latin1(text):
+    """Normaliza e limpa o texto para ser compatível com o core do FPDF (latin-1)"""
     if not text: return "N/A"
-    # Remove caracteres que o FPDF não consegue renderizar no modo padrão
-    return unicodedata.normalize('NFKD', str(text)).encode('ascii', 'ignore').decode('ascii')
+    return unicodedata.normalize('NFKD', str(text)).encode('latin-1', 'ignore').decode('latin-1')
 
 def generate_dossier_fixed(node, cpu, ai_report):
     try:
-        # Configuração de margens para evitar o erro de 'horizontal space'
         pdf = FPDF(orientation='P', unit='mm', format='A4')
         pdf.set_margins(left=15, top=15, right=15)
         pdf.add_page()
+        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
         
-        # Fundo Preto
-        pdf.set_fill_color(0, 0, 0)
-        pdf.rect(0, 0, 210, 297, 'F')
-        
-        # Cabeçalho
         pdf.set_text_color(0, 255, 65)
         pdf.set_font("Courier", "B", 16)
-        pdf.cell(0, 15, sanitize_text(f"EXHIBIT: {node}"), ln=True, align='C')
+        pdf.cell(0, 15, sanitize_to_latin1(f"EXHIBIT: {node}"), ln=True, align='C')
         pdf.ln(5)
         
-        # Conteúdo Técnico
         pdf.set_font("Courier", "", 10)
         ts = time.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Sanitização rigorosa linha a linha
-        report_safe = sanitize_text(ai_report)
-        
-        body = [
+        content = [
             f"TIMESTAMP: {ts}",
             f"ARCHITECT: MARCO ANTONIO DO NASCIMENTO",
             f"SYSTEM_HOMEOSTASE: {100-(cpu*0.1):.2f}%",
-            f"FEDERAL_HASH: {hashlib.md5(ts.encode()).hexdigest().upper()}",
             "-"*40,
             "GEN-AI ANALYSIS:",
-            report_safe,
+            sanitize_to_latin1(ai_report),
             "-"*40
         ]
         
-        for line in body:
-            # multi_cell com largura definida (0 = até a margem direita)
+        for line in content:
             pdf.multi_cell(w=0, h=7, txt=line, align='L')
             
         return pdf.output()
     except Exception as e:
-        return f"Erro na geração do PDF: {str(e)}".encode('ascii')
+        # Retorno de emergência em caso de erro, garantindo que não quebre o encode
+        return b"ERRO CRITICO NA GERACAO DO PDF. VERIFIQUE OS LOGS."
 
 # --- [3. DASHBOARD XEON] ---
 @st.fragment(run_every=5)
@@ -107,14 +93,19 @@ def xeon_main():
         if st.button("🧠 SCAN IA"):
             with st.status("Processando...", expanded=False) as s:
                 if client:
-                    res = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{"role": "user", "content": f"Analise brevemente a estabilidade de {cpu_val}% para visto EB1A."}]
-                    )
-                    st.session_state.ai_report = res.choices.message.content
-                    s.update(label="Concluído", state="complete")
+                    try:
+                        res = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=[{"role": "user", "content": f"Analise brevemente a estabilidade de {cpu_val}% para visto EB1A."}]
+                        )
+                        st.session_state.ai_report = res.choices.message.content
+                        st.session_state.voice_cmd = "Análise concluída com sucesso."
+                        s.update(label="Concluído", state="complete")
+                    except:
+                        st.session_state.ai_report = "Erro na API OpenAI."
+                        s.update(label="Erro", state="error")
                 else:
-                    st.session_state.ai_report = "IA Offline - Chave não encontrada."
+                    st.session_state.ai_report = "IA Offline."
 
     st.divider()
 
@@ -125,13 +116,27 @@ def xeon_main():
             st.markdown(f"<div class='node-card'><small>NODE 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
             if st.button(f"ATIVAR {s}", key=f"act_{i}"):
                 st.session_state.active_node = s
+                st.session_state.voice_cmd = f"Nó {s} ativado."
             
             if st.session_state.get('active_node') == s:
-                rep = st.session_state.get('ai_report', "Sem dados de IA.")
+                rep = st.session_state.get('ai_report', "Aguardando Scan.")
                 pdf_data = generate_dossier_fixed(s, cpu_val, rep)
                 st.download_button(label="📥 DOWNLOAD PDF", data=pdf_data, file_name=f"{s}.pdf", mime="application/pdf", key=f"dl_{i}")
+
+    # --- [VOX PROTOCOL: DEVOLVENDO A VOZ] ---
+    if st.session_state.get('voice_cmd'):
+        components.html(f"""
+            <script>
+            window.speechSynthesis.cancel();
+            var m = new SpeechSynthesisUtterance('{st.session_state.voice_cmd}');
+            m.lang = 'pt-BR';
+            window.speechSynthesis.speak(m);
+            </script>
+        """, height=0)
+        st.session_state.voice_cmd = ""
 
 # --- [4. FINALIZAÇÃO] ---
 st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAND v131.0</h1>", unsafe_allow_html=True)
 if 'ai_report' not in st.session_state: st.session_state.ai_report = ""
+if 'voice_cmd' not in st.session_state: st.session_state.voice_cmd = ""
 xeon_main()
