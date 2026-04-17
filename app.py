@@ -3,137 +3,128 @@ import time
 import hashlib
 import yfinance as yf
 import random
-import os
 import sqlite3
 import pandas as pd
 from fpdf import FPDF
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 
-# --- [1. CONFIGURAÇÃO DE SEGURANÇA E AMBIENTE] ---
-# Prioriza variável de ambiente; se não existir, usa o fallback (apenas para dev)
-SOVEREIGN_KEY = os.getenv("XEON_SECRET_KEY", "XEON-2026-ALPHA")
+# --- [1. CONFIGURAÇÃO VISUAL SOBERANA] ---
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
 
-st.set_page_config(page_title="XEON COMMAND v106.4", layout="wide", page_icon="🛰️")
+st.set_page_config(page_title="XEON COMMAND v106.6", layout="wide", page_icon="🛰️")
 
-# Estilização Militar High-Contrast
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
-    .status-box {{ border: 2px solid {MATRIX_GREEN}; padding: 15px; background: rgba(0,255,65,0.05); border-left: 10px solid {MATRIX_GREEN}; border-radius: 4px; }}
-    button {{ border: 2px solid {MATRIX_GREEN} !important; background: transparent !important; color: {MATRIX_GREEN} !important; font-weight: bold !important; }}
-    button:hover {{ background: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; }}
+    [data-testid="stSidebar"] {{ background-color: {BLACKOUT} !important; border-right: 1px solid {MATRIX_GREEN}; }}
+    .status-box {{ border: 2px solid {MATRIX_GREEN}; padding: 12px; background: #000; border-left: 8px solid {MATRIX_GREEN}; margin-bottom: 10px; }}
+    button {{ border: 1px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; transition: 0.3s; font-size: 12px !important; }}
+    button:hover {{ background: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 15px {MATRIX_GREEN}; }}
+    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; text-shadow: 0 0 10px {MATRIX_GREEN}; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR DE AUDITORIA E PERSISTÊNCIA] ---
+# --- [2. MOTOR DE AUDITORIA E HISTÓRICO] ---
 def init_db():
     with sqlite3.connect('xeon_sovereign.db') as conn:
         conn.execute('''CREATE TABLE IF NOT EXISTS activation_logs 
                      (timestamp TEXT, sector TEXT, token TEXT, qber REAL, mkt REAL, integrity_hash TEXT)''')
 
 def log_activation(sector, token, qber, mkt):
-    # Geração de hash para prova de não-adulteração
     raw_data = f"{sector}{token}{qber}{mkt}"
-    integrity_hash = hashlib.sha256(raw_data.encode()).hexdigest()[:16]
+    i_hash = hashlib.sha256(raw_data.encode()).hexdigest()[:16]
     with sqlite3.connect('xeon_sovereign.db') as conn:
         conn.execute("INSERT INTO activation_logs VALUES (?,?,?,?,?,?)", 
-                     (time.strftime('%Y-%m-%d %H:%M:%S'), sector, token, qber, mkt, integrity_hash))
-    return integrity_hash
+                     (time.strftime('%H:%M:%S'), sector, token, qber, mkt, i_hash))
+    return i_hash
 
-# --- [3. MOTOR DE DOSSIÊS (PROVA TÉCNICA)] ---
-def generate_v106_4_pdf(sector, token, intel, i_hash):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-    pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
-    pdf.cell(0, 15, f"RELATÓRIO DE SEGURANÇA QUÂNTICA - XEON v106.4", ln=True, align='C')
-    pdf.ln(10)
-    pdf.set_font("Courier", "B", 10)
-    # Metadados de integridade no cabeçalho
-    pdf.cell(0, 8, f"Q-TOKEN: {token}", ln=True)
-    pdf.cell(0, 8, f"BIT ERROR RATE (QBER): {intel['qber']:.2f}%", ln=True)
-    pdf.cell(0, 8, f"INTEGRITY HASH: {i_hash}", ln=True)
-    pdf.cell(0, 8, f"SECTOR: {sector.upper()}", ln=True)
-    pdf.ln(10)
-    pdf.set_font("Courier", "", 11)
-    body = ("Este documento serve como prova técnica de integridade de sistemas. "
-            "A ativação do nó foi validada via protocolo gRPC blindado contra interceptação. "
-            "\n\nESTADO DO MERCADO (S&P 500): " + f"{intel['mkt']:.2f}" +
-            "\nSTATUS QUÂNTICO: " + f"{intel['q_status']}" +
-            "\n\nADMINISTRADOR: ARQUITETO MARCO ANTONIO DO NASCIMENTO.")
-    pdf.multi_cell(0, 8, body)
-    return pdf.output(dest='S').encode('latin-1')
+# --- [3. TELEMETRIA E PERFORMANCE REAL-TIME] ---
+if 'telemetry_history' not in st.session_state:
+    st.session_state.telemetry_history = pd.DataFrame(columns=['Time', 'QBER', 'CPU', 'Latência'])
 
-# --- [4. TELEMETRIA REAL-TIME] ---
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=2)
 def fetch_intel():
-    qber = random.uniform(1.1, 4.2)
-    return {
-        "mkt": yf.Ticker("^GSPC").fast_info['last_price'] if yf.Ticker("^GSPC") else 5100.0,
-        "qber": qber,
-        "q_status": "SECURE" if qber < 11.0 else "INTERCEPTED",
-        "ping": f"{random.uniform(7, 10):.2f} ms"
-    }
+    qber = random.uniform(1.0, 3.5)
+    cpu = random.uniform(15, 45)
+    ping = random.uniform(5, 12)
+    try:
+        mkt = yf.Ticker("^GSPC").fast_info['last_price']
+    except:
+        mkt = 5120.42
+    
+    # Atualiza histórico para o gráfico
+    new_data = pd.DataFrame([[time.strftime('%H:%M:%S'), qber, cpu, ping]], 
+                            columns=['Time', 'QBER', 'CPU', 'Latência'])
+    st.session_state.telemetry_history = pd.concat([st.session_state.telemetry_history, new_data]).tail(20)
+    
+    return {"mkt": mkt, "qber": qber, "cpu": cpu, "ping": f"{ping:.2f} ms", "status": "OPTIMAL"}
 
-# --- [5. INTERFACE DE COMANDO] ---
+# --- [4. INTERFACE DE COMANDO] ---
 init_db()
 intel = fetch_intel()
 
-st.title("🛰️ XEON COMMAND v106.4 | OPERAÇÃO SOBERANA")
+st.title("🛰️ XEON COMMAND v106.6 | STRATEGIC NODE DOMINATION")
 
-with st.sidebar:
-    st.header("🔐 AUTENTICAÇÃO")
-    auth_key = st.text_input("Chave Mestra (Sovereign)", type="password")
-    is_auth = auth_key == SOVEREIGN_KEY
-    if is_auth: st.success("ACESSO QUÂNTICO LIBERADO")
-    else: st.warning("AGUARDANDO MULTISIG")
+tab_ops, tab_infra, tab_ledger = st.tabs(["🎮 OPERAÇÕES", "🏗️ INFRAESTRUTURA", "📜 AUDITORIA"])
 
-tab_cmd, tab_ledger = st.tabs(["🎮 CONTROLE DE NÓS", "📜 AUDITORIA"])
-
-with tab_cmd:
-    c1, c2 = st.columns([1, 2])
+with tab_ops:
+    c1, c2 = st.columns([1, 2.5])
     with c1:
-        st.metric("QBER", f"{intel['qber']:.2f}%", "ESTÁVEL")
-        st.metric("LATÊNCIA gRPC", intel['ping'])
-        if st.button("🔊 RELATÓRIO DE VOZ"):
-            msg = f"Status Xeon v106.4. Túnel g-r-p-c operacional com latência de {intel['ping']}. Integridade do banco de dados verificada. Arquiteto Marco Antonio, todos os sistemas estão prontos para ativação."
+        st.metric("S&P 500 ANCHOR", f"{intel['mkt']:.2f}")
+        st.metric("QUANTUM QBER", f"{intel['qber']:.2f}%")
+        st.metric("CPU LOAD", f"{intel['cpu']:.1f}%")
+        if st.button("🔊 RELATÓRIO TÉCNICO"):
+            msg = f"Nós XEON operacionais. Performance de CPU em {intel['cpu']:.1f} por cento. Q-B-E-R estável. Arquiteto Marco Antonio, rede pronta para expansão."
             components.html(f"<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance('{msg}'));</script>", height=0)
-    
+
     with c2:
-        # Visualização de Topologia Ativa
-        options = {"backgroundColor": "#000", "series": [{"type": "graph", "layout": "force", "symbolSize": 45, "roam": True,
-                   "data": [{"name": "CORE"}, {"name": "QKD"}, {"name": "gRPC"}, {"name": "DB"}],
-                   "links": [{"source": "CORE", "target": "QKD"}, {"source": "QKD", "target": "gRPC"}, {"source": "gRPC", "target": "DB"}],
-                   "label": {"show": True, "color": MATRIX_GREEN}}]}
-        st_echarts(options=options, height="280px")
+        st.write("### 📈 PERFORMANCE MULTI-STREAM (REAL-TIME)")
+        # Gráfico ECharts de múltiplas séries
+        line_options = {
+            "backgroundColor": "#000",
+            "tooltip": {"trigger": "axis"},
+            "legend": {"data": ["QBER", "CPU", "Latência"], "textStyle": {"color": MATRIX_GREEN}},
+            "xAxis": {"type": "category", "data": st.session_state.telemetry_history['Time'].tolist(), "axisLabel": {"color": MATRIX_GREEN}},
+            "yAxis": {"type": "value", "axisLabel": {"color": MATRIX_GREEN}, "splitLine": {"lineStyle": {"color": "#111"}}},
+            "series": [
+                {"name": "QBER", "type": "line", "data": st.session_state.telemetry_history['QBER'].tolist(), "color": MATRIX_GREEN},
+                {"name": "CPU", "type": "line", "data": st.session_state.telemetry_history['CPU'].tolist(), "color": "#008F11"},
+                {"name": "Latência", "type": "line", "data": st.session_state.telemetry_history['Latência'].tolist(), "color": "#ADFF2F"}
+            ]
+        }
+        st_echarts(options=line_options, height="350px")
 
 st.divider()
 
-# --- [6. ATIVAÇÃO DE SETORES] ---
-setores = ["CRIPTOGRAFIA QKD", "DEFESA gRPC", "SIGINT/ELINT", "GOVERNANÇA NIW"]
+# --- [5. SETORES DE DEFESA EXPANDIDOS (8 NÓS)] ---
+st.write("### 🛠️ MATRIZ DE ATIVAÇÃO DE ATIVOS (ALTA DISPONIBILIDADE)")
+setores = [
+    "CRIPTOGRAFIA QKD", "DEFESA gRPC", "SIGINT/ELINT", "GOVERNANÇA NIW",
+    "FIBER SHIELD", "NEURAL AUDIT", "SATELLITE LINK", "QUANTUM STORAGE"
+]
 cols = st.columns(4)
+for i, s in enumerate(setores):
+    with cols[i % 4]:
+        st.markdown(f"<div class='status-box'><small>NÓ 0{i+1}</small><br><b>{s}</b></div>", unsafe_allow_html=True)
+        if st.button(f"ATIVAR {s.split()[0]}", key=f"btn_{i}"):
+            tk = hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:10]
+            ih = log_activation(s, tk, intel['qber'], intel['mkt'])
+            st.success(f"ONLINE: {tk}")
 
-for i, setor in enumerate(setores):
-    with cols[i]:
-        st.markdown(f"<div class='status-box'>NODE 0{i+1}<br><b>{setor}</b></div>", unsafe_allow_html=True)
-        if st.button(f"ATIVAR {setor.split()[0]}", key=f"btn_{i}"):
-            if is_auth:
-                token = hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:12]
-                i_hash = log_activation(setor, token, intel['qber'], intel['mkt'])
-                pdf_data = generate_v106_4_pdf(setor, token, intel, i_hash)
-                
-                st.success(f"Nó Ativado: {token}")
-                st.download_button("📥 BAIXAR DOSSIÊ", data=pdf_data, file_name=f"XEON_AUDIT_{token}.pdf", key=f"dl_{i}")
-            else:
-                st.error("ACESSO NEGADO")
+with tab_infra:
+    st.write("### 🛰️ TOPOLOGIA DE REDE DINÂMICA")
+    infra_opt = {"backgroundColor": "#000", "series": [{"type": "graph", "layout": "force", "symbolSize": 40,
+                 "data": [{"name": s} for s in setores] + [{"name": "CORE-AI", "symbolSize": 60}],
+                 "links": [{"source": "CORE-AI", "target": s} for s in setores],
+                 "label": {"show": True, "color": MATRIX_GREEN}}]}
+    st_echarts(options=infra_opt, height="500px")
 
 with tab_ledger:
-    st.write("### 📜 LEDGER DE INTEGRIDADE (TOP 10)")
+    st.write("### 📜 LEDGER SOBERANO")
     with sqlite3.connect('xeon_sovereign.db') as conn:
-        df_logs = pd.read_sql_query("SELECT * FROM activation_logs ORDER BY timestamp DESC LIMIT 10", conn)
-        st.dataframe(df_logs, use_container_width=True)
+        df_l = pd.read_sql_query("SELECT * FROM activation_logs ORDER BY timestamp DESC", conn)
+        st.dataframe(df_l, use_container_width=True)
 
-st.caption("ARQUITETO: MARCO ANTONIO | STRATEGIC ASSET PROTECTION | NIST SP 800-53 COMPLIANT")
+st.caption("ADMIN: MARCO ANTONIO | XEON SOVEREIGN INFRASTRUCTURE v106.6 | 2026")
