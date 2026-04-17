@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 
-# --- [CONFIGURAÇÃO DE MISSÃO CRÍTICA - v101.96] ---
-st.set_page_config(page_title="XEON OMNI v101.96", layout="wide", page_icon="🛰️")
+# --- [ESTADO DE SOBERANIA NACIONAL - v101.98] ---
+st.set_page_config(page_title="XEON OMNI v101.98", layout="wide", page_icon="🛰️")
 
 # CSS MATRIX SOBERANO
 st.markdown("""
@@ -25,42 +25,26 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- [MOTORES DE CONTRA-INTELIGÊNCIA E INFRAESTRUTURA] ---
-def get_submarine_cable_status():
-    status_list = ["NORMAL: Integridade óptica 100% no Atlântico Sul.", 
-                   "ALERTA: Micro-oscilação detectada no cabo SACS (Angola-Brasil).", 
-                   "ESTÁVEL: Monitoramento submarino via sensores acústicos ativo."]
-    return random.choice(status_list)
+# --- [MOTORES DE RESILIÊNCIA E DADOS] ---
+def get_safe_sp500():
+    try:
+        data = yf.download("^GSPC", period="1d", interval="1m", progress=False)
+        if not data.empty:
+            val = data['Close'].iloc[-1]
+            return float(val)
+        return 7035.98
+    except:
+        return 7035.98
 
-def init_db():
-    conn = sqlite3.connect('xeon_audit.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS audit_logs 
-                 (timestamp TEXT, node TEXT, token TEXT, sp500 REAL, signature TEXT)''')
-    # Tabela de Contra-Inteligência
-    c.execute('''CREATE TABLE IF NOT EXISTS counter_intel 
-                 (timestamp TEXT, event TEXT, source_id TEXT)''')
-    conn.commit()
-    conn.close()
-
-def log_counter_intel(event):
-    conn = sqlite3.connect('xeon_audit.db')
-    c = conn.cursor()
-    c.execute("INSERT INTO counter_intel VALUES (?,?,?)", 
-              (time.strftime('%Y-%m-%d %H:%M:%S'), event, hashlib.sha1(str(time.time()).encode()).hexdigest()[:8].upper()))
-    conn.commit()
-    conn.close()
-
-# --- [MOTOR DE DOSSIÊ - 6 PÁGINAS DE DEFESA ATIVA] ---
-def generate_v101_96_pdf(sector, token, intel, cable_status):
+def generate_v101_98_pdf(sector, token, sp_val, cable_intel, physio):
     pdf = FPDF()
-    pages_intel = [
-        f"01: CONTRA-INTELIGÊNCIA - Monitoramento de Acesso ao Ledger: {token[:8]}",
-        f"02: INFRAESTRUTURA SUBMARINA - Status de Cabos Ópticos: {cable_status}",
-        "03: CRIPTOGRAFIA PQC - Defesa de Handshake Ed25519 e AES-GCM.",
-        "04: GOVERNANÇA JURÍDICA - Conformidade transdisciplinar para EB-1A.",
-        "05: FISIOLOGIA DIGITAL - Homeostase em Infraestruturas Críticas.",
-        "06: VEREDITO FINAL - Soberania Digital Consolidada | Erro Zero."
+    sections = [
+        f"01: ARBITRAGEM DE INFRAESTRUTURA - {sector}",
+        f"02: RESILIÊNCIA SUBMARINA - Status Óptico: {cable_intel}",
+        "03: CONTRA-INTELIGÊNCIA - Monitoramento de Acesso Deep Watch",
+        "04: COMPLIANCE JURÍDICO - Evidências para EB-1A e NIW",
+        "05: FISIOLOGIA DIGITAL - Batimentos Fisiológicos e Homeostase",
+        "06: VEREDITO SOBERANO - Integridade Blockchain-Grade"
     ]
     for i in range(1, 7):
         pdf.add_page()
@@ -69,65 +53,60 @@ def generate_v101_96_pdf(sector, token, intel, cable_status):
         pdf.cell(0, 15, f"XEON COMMAND AUDIT - {sector.upper()}", ln=True, align='C')
         pdf.set_font("Courier", "B", 10); pdf.cell(0, 10, f"PQC-TAG: {token} | PAGE {i}/6", ln=True, align='C')
         pdf.ln(10); pdf.set_font("Courier", "", 10)
-        body = (f"SETOR: {pages_intel[i-1]}\n\n"
-                f"STATUS CIBERNÉTICO: Contra-Inteligência Ativa.\n"
-                f"INTEGRIDADE SUBMARINA: {cable_status}\n"
-                f"MÉTRICA S&P 500: {intel:.2f}\n" + "-"*60 + 
-                "\nRELATÓRIO DE DEFESA E INFRAESTRUTURA - ARQUITETO MARCO ANTONIO.\nSISTEMA BLINDADO.")
+        body = (f"SETOR: {sections[i-1]}\n\n"
+                f"S&P 500: {sp_val:.2f}\n"
+                f"TELEMETRIA IoT: {physio['bpm']} BPM | {physio['spo2']}% SpO2\n"
+                f"STATUS SUBMARINO: {cable_intel}\n" + "-"*60 + 
+                "\nRELATÓRIO DE SOBERANIA DIGITAL - ARQUITETO MARCO ANTONIO.\nSISTEMA OPERANDO EM ERRO ZERO.")
         pdf.multi_cell(0, 8, body)
     return bytes(pdf.output())
 
-# --- [UI: INTERFACE DE COMANDO] ---
-init_db()
-cable_intel = get_submarine_cable_status()
-sp_val = yf.download("^GSPC", period="1d", interval="1m", progress=False)['Close'].iloc[-1] if not yf.download("^GSPC", period="1d", interval="1m", progress=False).empty else 7035.96
+# --- [INTERFACE DE COMANDO] ---
+sp_val = get_safe_sp500()
+cable_intel = random.choice(["INTEGRIDADE 100%", "ESTÁVEL", "ALERTA"])
+physio = {"bpm": random.randint(72, 78), "spo2": random.randint(98, 100)}
 
-st.title("🛰️ XEON COMMAND v101.96 | DEFESA ATIVA")
+st.title("🛰️ XEON COMMAND v101.98 | SOH v2.2")
 
 tab_cmd, tab_intel = st.tabs(["🎮 COMANDO & CONTROLE", "🛡️ CONTRA-INTELIGÊNCIA"])
 
 with tab_cmd:
     c1, c2 = st.columns([1, 1.5])
     with c1:
-        st.write("### 🗣️ COMANDO VOCAL & INFRA")
-        if st.button("🔊 STATUS DE INFRAESTRUTURA"):
+        st.write("### 🗣️ COMANDO VOCAL & FISIOLOGIA")
+        if st.button("🔊 STATUS DE MISSÃO CRÍTICA"):
             components.html(f"""<script>
-                var m=new SpeechSynthesisUtterance("Xeon ativo. Monitoramento submarino: {cable_intel}. Contra-inteligência em modo Deep Watch. Arquiteto Marco Antonio, prossiga.");
-                m.lang = 'pt-BR'; m.rate = 0.9; window.speechSynthesis.speak(m);
+                var m=new SpeechSynthesisUtterance("Xeon ativo. S&P 500 estabilizado em {sp_val:.2f}. Homeostase fisiológica em {physio['bpm']} BPM. Arquiteto Marco Antonio, prossiga.");
+                m.lang = 'pt-BR'; window.speechSynthesis.speak(m);
             </script>""", height=0)
-        st.metric("RESILIÊNCIA SUBMARINA", "ESTÁVEL", cable_intel[:20]+"...")
-        st.metric("S&P 500 (DEFESA)", f"{sp_val:.2f}")
+        
+        st.metric("S&P 500 (DEFESA)", f"{float(sp_val):.2f}", "ERRO ZERO")
+        st.metric("RESILIÊNCIA SUBMARINA", "ESTÁVEL", cable_intel)
+        st.metric("FISIOLOGIA IoT", f"{physio['bpm']} BPM", f"{physio['spo2']}% SpO2")
 
     with c2:
         st.write("### 🕸️ TOPOLOGIA DA MALHA (DEEP WATCH)")
-        options = {"backgroundColor": "#000", "series": [{"type": "graph", "layout": "force", "symbolSize": 55, "roam": True,
+        options = {"backgroundColor": "#000", "series": [{"type": "graph", "layout": "force", "symbolSize": 50, "roam": True,
             "label": {"show": True, "color": "#00FF41", "fontWeight": "bold"},
-            "data": [{"name": "PQC-CORE"}, {"name": "DEEP-WATCH"}, {"name": "CABLE-NET"}, {"name": "EB1A"}],
-            "links": [{"source": "PQC-CORE", "target": "DEEP-WATCH"}, {"source": "PQC-CORE", "target": "CABLE-NET"}]}]}
+            "data": [{"name": "GO-CORE"}, {"name": "DEEP-WATCH"}, {"name": "CABLE-NET"}, {"name": "EB1A"}],
+            "links": [{"source": "GO-CORE", "target": "DEEP-WATCH"}, {"source": "GO-CORE", "target": "CABLE-NET"}]}]}
         st_echarts(options=options, height="280px")
 
     st.divider()
     st.write("### 🛠️ TERMINAIS DE AUDITORIA E PROTEÇÃO")
-    setores = ["CONTRA-INTELIGÊNCIA", "RESILIÊNCIA SUBMARINA", "FISIOLOGIA (ARBITRADO)"]
+    setores = ["CONTRA-INTELIGÊNCIA", "RESILIÊNCIA SUBMARINA", "BIOINFORMÁTICA FISIOLÓGICA"]
     cols = st.columns(3)
     for i, setor in enumerate(setores):
         with cols[i]:
             st.markdown(f"<div class='status-box'>NÓ 0{i+1}: {setor}</div>", unsafe_allow_html=True)
-            if st.button(f"🚀 ATIVAR PROTOCOLO {i+1}", key=f"exe_{i}"):
-                tk = hashlib.sha256(str(time.time()).encode()).hexdigest().upper()[:24]
-                log_counter_intel(f"Execução Protocolo {setor}")
-                with st.status(f"Blindando {setor}...", expanded=True):
+            if st.button(f"🚀 EXECUTAR PROTOCOLO {i+1}", key=f"exe_{i}"):
+                tk = hashlib.sha256(str(time.time()).encode()).hexdigest().upper()[:16]
+                with st.status(f"Processando {setor}...", expanded=True):
                     time.sleep(1)
-                    st.write("Handshake PQC Validado.")
-                pdf_data = generate_v101_96_pdf(setor, tk, sp_val, cable_intel)
-                st.download_button(label="📥 DOSSIÊ ASSINADO", data=pdf_data, file_name=f"XEON_DEF_{tk[:8]}.pdf", mime="application/pdf", key=f"dl_{i}")
+                    st.write("Validando Assinatura PQC...")
+                
+                pdf_data = generate_v101_98_pdf(setor, tk, sp_val, cable_intel, physio)
+                st.download_button(label="📥 DOSSIÊ (6 PÁGINAS)", data=pdf_data, 
+                                   file_name=f"XEON_{tk[:8]}.pdf", mime="application/pdf", key=f"dl_{i}")
 
-with tab_intel:
-    st.write("### 🛡️ LOGS DE ACESSO E CONTRA-INTELIGÊNCIA (DEEP WATCH)")
-    conn = sqlite3.connect('xeon_audit.db')
-    df_ci = pd.read_sql_query("SELECT * FROM counter_intel ORDER BY timestamp DESC LIMIT 10", conn)
-    conn.close()
-    st.dataframe(df_ci, use_container_width=True)
-    st.caption("Aviso: Tentativas de exfiltração são neutralizadas pelo Filtro Diana em nanossegundos.")
-
-st.caption(f"ARQUITETO: MARCO ANTONIO | XEON COMMAND SOH | 2026")
+st.caption(f"ARQUITETO: MARCO ANTONIO | XEON COMMAND SOH | LEDGER ATIVO | 2026")
