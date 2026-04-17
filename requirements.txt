@@ -12,3 +12,5 @@ scikit-learn
 aiosqlite
 pyvis
 biopython
+yfinance
+streamlit-echarts
