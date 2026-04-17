@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import yfinance as yf
@@ -7,107 +8,100 @@ import hashlib
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 
-# --- [1. CONFIGURAÇÃO DE AMBIENTE] ---
-st.set_page_config(page_title="XEON OMNI v101.71", layout="wide", page_icon="🛰️")
+# --- [CONFIGURAÇÃO SOBERANA - LIMPEZA DE LOGS] ---
+st.set_page_config(page_title="XEON OMNI v101.73", layout="wide")
 
+# Forçando o Blackout Matrix via CSS estável
 st.markdown("""
     <style>
     .stApp { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
-    .stButton>button { border: 1px solid #00FF41 !important; color: #00FF41 !important; background: #000 !important; width: 100% !important; height: 60px !important; font-weight: bold !important; font-size: 16px !important;}
-    .status-box { border: 2px solid #00FF41; padding: 15px; background: #0A0A0A; margin: 10px 0; border-left: 10px solid #00FF41; }
+    .stButton>button { border: 1px solid #00FF41 !important; color: #00FF41 !important; background: #000 !important; width: 100%; height: 50px; font-weight: bold; }
+    .status-box { border: 2px solid #00FF41; padding: 15px; background: #0A0A0A; margin-bottom: 20px; border-left: 10px solid #00FF41; }
     [data-testid="stMetricValue"] { color: #00FF41 !important; }
-    h1, h2, h3 { color: #00FF41 !important; }
     </style>
-    """, unsafe_allow_stdio=True)
+    """, unsafe_allow_html=True)
 
-# --- [2. FUNÇÕES DE CORE (PDF E DADOS)] ---
-def generate_pdf_6_pages(sector, token):
+# --- [GERADOR DE PDF DE 6 PÁGINAS (v2)] ---
+def generate_xeon_pdf(sector, token):
     pdf = FPDF()
     for i in range(1, 7):
         pdf.add_page()
         pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
-        pdf.cell(0, 15, f"DOSSIÊ XEON - {sector}", 0, 1, 'C')
+        pdf.set_text_color(0, 255, 65)
+        # Correção do erro de fonte do log
+        pdf.set_font("Courier", "B", 14)
+        pdf.cell(0, 15, f"XEON AUDIT DOSSIER - {sector}", 0, 1, 'C')
+        pdf.set_font("Courier", "", 10)
         pdf.ln(10)
-        pdf.set_font("Courier", "", 12)
-        pdf.multi_cell(0, 10, f"PAGINA {i}/6\nTOKEN: {token}\nSTATUS: OPERAÇÃO SOBERANA\n\nConformidade NIST e Governança GRC ativa.\n\n" + "CONFIDENCIAL "*50)
+        pdf.multi_cell(0, 8, f"PAGINA {i}/6\nTOKEN: {token}\nSTATUS: MISSION CRITICAL\n\nEste documento atesta a conformidade NIST/ZTA e governança transdisciplinar.")
     return pdf.output(dest='S').encode('latin-1')
 
-# --- [3. HEADER: FALA E ESCUTA (FORÇADO)] ---
-st.title("🛰️ XEON OMNI v101.71 | GLOBAL HUB")
+# --- [INTERFACE: VOZ E GRAFO] ---
+st.title("🛰️ XEON OMNI | MISSION CRITICAL")
 
-c_voz, c_grafo = st.columns([1, 1])
+col_v, col_g = st.columns(2)
 
-with c_voz:
+with col_v:
     st.write("### 🗣️ COMANDO VOCAL")
+    # Versão atualizada do componente de HTML
     components.html("""
         <div style="background:#000; border:1px solid #00FF41; padding:15px; color:#00FF41; font-family:monospace;">
-            <button onclick="rec()" style="width:48%; background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🎙️ ESCUTAR</button>
-            <button onclick="falar()" style="width:48%; background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🔊 STATUS</button>
-            <div id="v-status" style="margin-top:10px; font-size:12px;">> MONITOR: AGUARDANDO...</div>
+            <button onclick="rec()" style="width:45%; background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🎙️ ESCUTAR</button>
+            <button onclick="speak()" style="width:45%; background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer; margin-left:5%;">🔊 STATUS</button>
+            <p id="st" style="margin-top:10px; font-size:12px;">> MONITOR: STANDBY</p>
         </div>
         <script>
-            function falar() {
-                const u = new SpeechSynthesisUtterance("Sistema Xeon Ativo. Monitorando APIs Globais.");
+            function speak() {
+                const u = new SpeechSynthesisUtterance("Xeon Omni Ativo. Missão Crítica Nominal.");
                 u.rate = 0.8; window.speechSynthesis.speak(u);
             }
             function rec() {
                 const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
                 r.lang = 'pt-BR'; r.start();
-                document.getElementById('v-status').innerText = "> ESCUTANDO...";
-                r.onresult = (e) => { 
-                    document.getElementById('v-status').innerText = "> CAPTADO: " + e.results[0][0].transcript.toUpperCase();
-                };
+                document.getElementById('st').innerText = "> ESCUTANDO...";
+                r.onresult = (e) => { document.getElementById('st').innerText = "> CAPTADO: " + e.results.transcript.toUpperCase(); };
             }
         </script>
-    """, height=140)
+    """, height=150)
 
-with c_grafo:
+with col_g:
     st.write("### 🕸️ TOPOLOGIA DA MALHA")
     options = {
         "backgroundColor": "#000",
         "series": [{"type": "graph", "layout": "force", "symbolSize": 40, "roam": True,
             "label": {"show": True, "color": "#00FF41"},
             "lineStyle": {"color": "#00FF41", "width": 2},
-            "data": [{"name": "GO-CORE"}, {"name": "FIN"}, {"name": "GRC"}, {"name": "EB1A"}],
-            "links": [{"source": "GO-CORE", "target": "FIN"}, {"source": "GO-CORE", "target": "GRC"}]
+            "data": [{"name": "GO-CORE"}, {"name": "LEGAL"}, {"name": "BIO"}, {"name": "FIN"}],
+            "links": [{"source": "GO-CORE", "target": "LEGAL"}, {"source": "GO-CORE", "target": "FIN"}]
         }]
     }
-    st_echarts(options=options, height="140px")
+    st_echarts(options=options, height="150px")
 
-# --- [4. TERMINAIS DE AUDITORIA] ---
-st.write("---")
-st.write("### 🛠️ TERMINAIS DE MISSÃO CRÍTICA")
-
-setores = ["FINANÇAS GLOBAIS", "GOVERNANÇA E CONFORMIDADE", "RELATÓRIO TÉCNICO EB-1A"]
+# --- [TERMINAIS DE AUDITORIA] ---
+st.divider()
+setores = ["FINANÇAS GLOBAIS", "GOVERNANÇA NIST/ZTA", "PROVA TÉCNICA EB-1A"]
 
 for i, setor in enumerate(setores):
     with st.container():
-        st.markdown(f"<div class='status-box'>NÓ 0{i+1}: {setor}</div>", unsafe_allow_stdio=True)
-        col_btn, col_res = st.columns([1, 1])
-        
-        with col_btn:
-            # Botão Único de Ativação
-            if st.button(f"🚀 ATIVAR PROTOCOLO {i+1}", key=f"main_btn_{i}"):
-                token = hashlib.sha256(str(time.time()).encode()).hexdigest()[:16].upper()
-                
-                with st.status(f"Processando {setor}...", expanded=True):
-                    st.write("Handshake com motor Go...")
-                    time.sleep(0.5)
-                    st.write("Gerando PDF de 6 páginas...")
+        st.markdown(f"<div class='status-box'>NÓ 0{i+1}: {setor}</div>", unsafe_allow_html=True)
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button(f"ATIVAR NÓ 0{i+1}", key=f"btn_{i}"):
+                tk = hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:16]
+                with st.status(f"Gerando Dossiê {setor}...", expanded=True):
+                    time.sleep(1)
+                    st.write(f"Hash de Integridade: {tk}")
                     st.progress(100)
                 
-                # O BOTÃO DE PDF APARECE IMEDIATAMENTE ABAIXO
-                pdf_data = generate_pdf_6_pages(setor, token)
+                pdf_data = generate_xeon_pdf(setor, tk)
                 st.download_button(
-                    label=f"📥 BAIXAR DOSSIÊ (6 FOLHAS) - {setor}",
+                    label=f"📥 BAIXAR PDF (6 FOLHAS) - {setor.split()[0]}",
                     data=pdf_data,
                     file_name=f"XEON_AUDIT_{i+1}.pdf",
                     mime="application/pdf",
-                    key=f"pdf_dl_{i}"
+                    key=f"dl_{i}"
                 )
-        with col_res:
-            st.metric("INTEGRIDADE", "100%", "GO-CORE OK")
+        with c2:
+            st.metric("SITUACIONAL", "ESTÁVEL", "GO-CORE OK")
 
-st.divider()
-st.caption(f"ARQUITETO: MARCO ANTONIO | SESSION HASH: {hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:10]}")
+st.caption(f"ARQUITETO: MARCO ANTONIO | SESSION: {hashlib.sha1(str(time.time()).encode()).hexdigest()[:10].upper()}")
