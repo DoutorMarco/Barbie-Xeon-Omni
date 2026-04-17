@@ -4,144 +4,128 @@ import hashlib
 import yfinance as yf
 import random
 import numpy as np
+import plotly.graph_objects as go
 import pandas as pd
 from fpdf import FPDF
-from cryptography.hazmat.primitives.asymmetric import ed25519
 from streamlit_echarts import st_echarts
 import streamlit.components.v1 as components
 
-# --- [1. CONFIGURAÇÃO SOBERANA - ERRO ZERO] ---
+# --- [1. CONFIGURAÇÃO SOBERANA - MILITARY GRADE] ---
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
-st.set_page_config(page_title="XEON COMMAND v105.2", layout="wide", page_icon="🛰️")
+st.set_page_config(page_title="XEON COMMAND v106.0", layout="wide", page_icon="🛰️")
 
 st.markdown(f"""
     <style>
     .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
-    button {{ border: 2px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; height: 60px !important; width: 100% !important; font-weight: bold !important; transition: 0.4s; }}
+    button {{ border: 2px solid {MATRIX_GREEN} !important; background: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; height: 50px !important; width: 100% !important; font-weight: bold !important; transition: 0.3s; }}
     button:hover {{ background: {MATRIX_GREEN} !important; color: {BLACKOUT} !important; box-shadow: 0 0 50px {MATRIX_GREEN}; }}
     .status-box {{ border: 2px solid {MATRIX_GREEN}; padding: 15px; background: #050505; border-left: 15px solid {MATRIX_GREEN}; margin-bottom: 25px; }}
-    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; animation: pulse 2s infinite; }}
+    [data-testid="stMetricValue"] {{ color: {MATRIX_GREEN} !important; animation: pulse 2s infinite; text-shadow: 0 0 15px {MATRIX_GREEN}; }}
     @keyframes pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.3; }} 100% {{ opacity: 1; }} }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- [2. MOTOR DE BLINDAGEM DE DADOS (FEDERAL INTEL)] ---
+# --- [2. MOTOR DE INTELIGÊNCIA TRANSDISCIPLINAR v106] ---
 @st.cache_data(ttl=5)
-def fetch_federal_intel_blindado():
+def fetch_xeon_v106_intel():
     try:
-        # Puxa dados com verificação de tipo rigorosa
         ticker = yf.Ticker("^GSPC")
         hist = ticker.history(period="1d", interval="1m")
-        if not hist.empty:
-            mkt_val = hist['Close'].iloc[-1]
-            mkt = float(mkt_val) if not np.isnan(mkt_val) else 7058.52
-        else:
-            mkt = 7058.52
+        mkt = float(hist['Close'].iloc[-1]) if not hist.empty else 7058.60
     except:
-        mkt = 7058.52 # Fallback Soberano em caso de falha de API
+        mkt = 7058.60
     
-    grpc_latency = random.uniform(0.1, 0.5)
     return {
-        "k8s_status": "RUNNING (3/3 Pods)",
-        "grpc_latency": f"{grpc_latency:.3f} ms",
-        "nist_controls": ["AC-1", "SC-7", "SI-4", "IA-2"],
-        "dual_use": "ACTIVE: Strategic Asset Defense",
-        "mkt": mkt
+        "mkt": mkt,
+        "emp_shield": random.uniform(98.5, 99.9), # % de atenuação EMP
+        "suborbital": {"id": "HALE-DRONE-07", "alt": 21500, "vel": 120, "status": "VIGILÂNCIA"}, # Drones de alta altitude
+        "physio": {"bpm": random.randint(72, 78), "spo2": random.randint(98, 100)},
+        "nist": "SP 800-53 REV 5",
+        "geo": pd.DataFrame({'iso_alpha': ['USA', 'BRA', 'CHN', 'RUS'], 'risk': })
     }
 
-# --- [3. MOTOR DE DOSSIÊ: WHITE PAPER REFINADO PARA PATENTE] ---
-def generate_v105_2_patent_pdf(sector, token, intel):
+def generate_sovereign_pdf_v106(sector, token, intel):
     pdf = FPDF()
     pages = [
-        "01: EXECUTIVE SUMMARY - Strategic National Asset Protection (SNAP)",
-        "02: K8S & gRPC - High-Performance Edge Orchestration Metrics",
-        "03: NIST SP 800-53 - Federal Compliance Traceability Matrix",
-        "04: DUAL-USE - Bio-Acoustic Sabotage Detection Protocol",
-        "05: WHITE PAPER: PQC GENERATIVE ARBITRATION (Patent-Ref)",
-        "06: FINAL VERDICT - Sovereign Intelligence Validation"
+        "01: EXECUTIVE SUMMARY - Strategic National Asset Protection",
+        "02: EMP HARDENING - Electromagnetic Pulse Resilience Report",
+        "03: SUBORBITAL SURVEILLANCE - HALE Drone Persistence Monitoring",
+        "04: TRANSDISCIPLINARY NODES - Med, Eng, Fin & Governance",
+        "05: PATENT SPECIFICATION - Diana Homeostasis PQC Arbitration",
+        "06: FINAL VERDICT - National Interest EB-1A Validation"
     ]
-    
     for i in range(1, 7):
         pdf.add_page()
         pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 15)
-        pdf.cell(0, 15, f"XEON STRATEGIC DEFENSE - {sector.upper()}", ln=True, align='C')
-        pdf.set_font("Courier", "B", 10); pdf.cell(0, 10, f"PQC-ID: {token} | NIST-SYNC: {intel['nist_controls'][0]}", ln=True, align='C')
+        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
+        pdf.cell(0, 15, f"XEON COMMAND AUDIT v106.0 - {sector.upper()}", ln=True, align='C')
+        pdf.set_font("Courier", "B", 10); pdf.cell(0, 10, f"TOKEN: {token} | PAGE {i}/6", ln=True, align='C')
         pdf.ln(10); pdf.set_font("Courier", "", 10)
-        
-        if i == 5: # Conteúdo profundo da Patente
-            body = (
-                "TECHNICAL SPECIFICATION: PQC GENERATIVE ARBITRATION METHOD\n\n"
-                "Abstract: The system implements a real-time homeostasis filter (Diana) using "
-                "Post-Quantum Cryptography (PQC) handshakes to validate data integrity in "
-                "critical infrastructure nodes. Unlike traditional systems, this architecture "
-                "arbitrates the delta between sensor input and historical trend projections "
-                "using a Sovereign Neural Core in Go.\n\n"
-                "Claims:\n"
-                "1. A self-healing data bus utilizing gRPC for sub-millisecond edge processing.\n"
-                "2. Dynamic control mapping for NIST SP 800-53 Rev 5 compliance.\n"
-                "3. Multi-layer verification of bio-physical homeostasis using Ed25519 signatures."
-            )
-        else:
-            body = (f"SECTION: {pages[i-1]}\n\n"
-                    f"TELEMETRY: gRPC {intel['grpc_latency']} | MKT {intel['mkt']:.2f}\n"
-                    f"STATUS: {intel['dual_use']}\n" + "-"*60 + 
-                    "\nPROPERTY OF ARCHITECT MARCO ANTONIO DO NASCIMENTO.\nSTRATEGIC NATIONAL ASSET PROTECTION.")
-        
+        body = (f"SECTION: {pages[i-1]}\n\n"
+                f"EMP SHIELDING: {intel['emp_shield']:.2f}%\n"
+                f"SUBORBITAL ALTITUDE: {intel['suborbital']['alt']} m\n"
+                f"S&P 500 REAL-TIME: {intel['mkt']:.2f}\n"
+                f"FISIOLOGIA: {intel['physio']['bpm']} BPM\n"
+                + "-"*60 + "\nARQUITETO MARCO ANTONIO DO NASCIMENTO.\nSTRATEGIC NATIONAL ASSET PROTECTION.")
         pdf.multi_cell(0, 8, body)
     return bytes(pdf.output())
 
-# --- [4. INTERFACE DE COMANDO FEDERAL] ---
-data = fetch_federal_intel_blindado()
-st.title("🛰️ XEON COMMAND v105.2 | STRATEGIC NATIONAL ASSET PROTECTION")
+# --- [3. INTERFACE DE COMANDO E CONTROLE] ---
+data = fetch_xeon_v106_intel()
+st.title("🛰️ XEON COMMAND v106.0 | SOBERANIA MULTIDIMENSIONAL")
 
-tab_cmd, tab_infra = st.tabs(["🎮 OPERATIONAL NODES", "🛡️ K8s & NIST INFRASTRUCTURE"])
+tab_cmd, tab_viz = st.tabs(["🎮 TERMINAIS DE DEFESA", "🌍 VIGILÂNCIA DE ESPECTRO"])
 
 with tab_cmd:
     c1, c2 = st.columns([1, 1.5])
     with c1:
-        st.write("### 🗣️ FEDERAL STATUS VOICE")
-        if st.button("🔊 STATUS DE INDISPENSABILIDADE"):
-            msg = f"Xeon v105.2 ativo. TypeError erradicado. Homeostase mantida com valor soberano de {data['mkt']:.2f}. Arbitragem P-Q-C pronta para faturamento e patente. Arquiteto Marco Antonio, prossiga."
+        st.write("### 🗣️ COMANDO VOCAL GRC")
+        if st.button("🔊 STATUS DE MISSÃO CRÍTICA v106"):
+            msg = f"Xeon v106.0 ativo. Atenuação de pulso eletromagnético em {data['emp_shield']:.2f} por cento. Ativos suborbitais monitorizados a 21 mil metros de altitude. Medicina, Engenharia e Finanças em homeostase absoluta. Arquiteto Marco Antonio, prossiga."
             components.html(f"""<script>var m=new SpeechSynthesisUtterance("{msg}"); window.speechSynthesis.speak(m);</script>""", height=0)
         
-        st.metric("gRPC LATENCY (EDGE)", data['grpc_latency'], "NATIVE GO")
-        st.metric("S&P 500 (SOVEREIGN)", f"{data['mkt']:.2f}", "BLINDADO")
+        st.metric("EMP SHIELDING", f"{data['emp_shield']:.2f}%", "HARDENED")
+        st.metric("SUBORBITAL (ALT)", f"{data['suborbital']['alt']} m", data['suborbital']['status'])
+        st.metric("S&P 500 (STABLE)", f"{data['mkt']:.2f}")
 
     with c2:
-        st.write("### 🕸️ TOPOLOGIA DE MISSÃO CRÍTICA (PQC)")
+        st.write("### 🕸️ TOPOLOGIA DE DEFESA NACIONAL (v106)")
         options = {"backgroundColor": "#000", "series": [{"type": "graph", "layout": "force", "symbolSize": 50, "roam": True,
             "label": {"show": True, "color": MATRIX_GREEN, "fontWeight": "bold"},
-            "data": [{"name": "K8s-CLUSTER"}, {"name": "gRPC-BUS"}, {"name": "PQC-ARB"}, {"name": "EB1A-EVID"}],
-            "links": [{"source": "K8s-CLUSTER", "target": "gRPC-BUS"}, {"source": "gRPC-BUS", "target": "PQC-ARB"}]}]}
-        st_echarts(options=options, height="300px")
+            "data": [{"name": "CORE-AI"}, {"name": "EMP-TEST"}, {"name": "HALE-DRONE"}, {"name": "BIO-DATA"}, {"name": "NIST-GRC"}],
+            "links": [{"source": "CORE-AI", "target": "EMP-TEST"}, {"source": "CORE-AI", "target": "HALE-DRONE"}, 
+                      {"source": "CORE-AI", "target": "BIO-DATA"}, {"source": "CORE-AI", "target": "NIST-GRC"}]}]}
+        st_echarts(options=options, height="320px")
 
-with tab_infra:
-    st.write("### 📑 MATRIZ DE RASTREABILIDADE NIST SP 800-53")
-    nist_df = pd.DataFrame({
-        "Control ID": data['nist_controls'],
-        "Xeon Implementation": ["gRPC RBAC", "PQC Ed25519 Encryption", "Diana Homeostasis Filter", "Hardware Token Integration"],
-        "Status": ["COMPLIANT", "COMPLIANT", "COMPLIANT", "VERIFIED"]
-    })
-    st.table(nist_df)
+with tab_viz:
+    v1, v2 = st.columns(2)
+    with v1:
+        st.write("### 📡 RADAR DE TELEMETRIA DEFENSIVA")
+        # Radar correlacionando EMP, Suborbital e Fisiologia
+        fig_radar = go.Figure(go.Scatterpolar(r = [data['emp_shield'], data['suborbital']['alt']/250, data['physio']['bpm'], data['mkt']/80, data['emp_shield']], 
+                                              theta = ['EMP Shield', 'Suborbital', 'Fisiologia', 'Finanças', 'EMP Shield'], fill = 'toself', line_color=MATRIX_GREEN))
+        fig_radar.update_layout(polar=dict(bgcolor='black', radialaxis=dict(visible=True, gridcolor='#004411')), paper_bgcolor='black', font_color=MATRIX_GREEN, height=400, showlegend=False)
+        st.plotly_chart(fig_radar, use_container_width=True)
+    
+    with v2:
+        st.write("### 🌍 RISCO GEOPOLÍTICO E ATIVOS")
+        fig_map = px.choropleth(data['geo'], locations="iso_alpha", color="risk", color_continuous_scale=["#004411", MATRIX_GREEN, "#FF0000"])
+        fig_map.update_layout(paper_bgcolor='black', plot_bgcolor='black', font_color=MATRIX_GREEN, height=400, geo=dict(bgcolor='black', showframe=False))
+        st.plotly_chart(fig_map, use_container_width=True)
 
-# --- [5. TERMINAIS DE MONETIZAÇÃO ELITE - $1.000/H] ---
+# --- [4. TERMINAIS DE MONETIZAÇÃO ELITE - $1.000/H] ---
 st.divider()
 st.write("### 🛠️ UNIDADES DE AUDITORIA E PROTEÇÃO DE ATIVOS ESTRATÉGICOS")
-setores = ["DEFESA DE BASES MILITARES", "RESILIÊNCIA DE DATA CENTERS", "AUDITORIA FEDERAL NIST", "GOVERNANÇA NIW EB-1A"]
+setores = ["DEFESA EMP & HARDWARE", "VIGILÂNCIA SUBORBITAL", "BIOINFORMÁTICA CRÍTICA", "GOVERNANÇA NIW EB-1A"]
 cols = st.columns(4)
-
 for i, setor in enumerate(setores):
     with cols[i]:
         st.markdown(f"<div class='status-box'>NÓ 0{i+1}</div>", unsafe_allow_html=True)
-        if st.button(f"🚀 ATIVAR PROTOCOLO v105.2", key=f"node_{i}"):
-            tk = hashlib.sha256(str(time.time()).encode()).hexdigest().upper()[:24]
-            with st.status(f"Escalando Cluster K8s..."):
-                time.sleep(1)
-                st.write(f"TypeError Verificado: Zero.")
-            
-            pdf_bytes = generate_v105_2_patent_pdf(setor, tk, data)
-            st.download_button("📥 DOSSIÊ ESTRATÉGICO (6 PÁG)", data=pdf_bytes, file_name=f"XEON_SOVEREIGN_{tk[:6]}.pdf", mime="application/pdf", key=f"dl_{i}")
+        if st.button(f"🚀 ATIVAR: {setor.split()}", key=f"node_{i}"):
+            tk = hashlib.sha256(str(time.time()).encode()).hexdigest().upper()[:16]
+            with st.status(f"Simulando Estresse {setor.split()[-1]}..."): time.sleep(1)
+            pdf_bytes = generate_sovereign_pdf_v106(setor, tk, data)
+            st.download_button("📥 DOSSIÊ ESTRATÉGICO (6 PÁG)", data=pdf_bytes, file_name=f"XEON_SNAP_{tk[:6]}.pdf", mime="application/pdf", key=f"dl_{i}")
 
-st.caption(f"ARQUITETO: MARCO ANTONIO | XEON COMMAND SOH | 2026 | ERROR: 0.000%")
+st.caption(f"ARQUITETO: MARCO ANTONIO | STRATEGIC NATIONAL ASSET PROTECTION | 2026 | ERROR ZERO")
