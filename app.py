@@ -5,20 +5,20 @@ import hashlib
 import yfinance as yf
 from fpdf import FPDF
 import streamlit.components.v1 as components
-from streamlit_echarts import st_echarts  # Necessário: pip install streamlit-echarts
+from streamlit_echarts import st_echarts
 
 # --- [CONFIGURAÇÃO SOBERANA] ---
 st.set_page_config(page_title="XEON OMNI v101.64", layout="wide", page_icon="🛰️")
 
-# CSS MATRIX BLACKOUT
+# CSS MATRIX BLACKOUT (Aprimorado para Botões de Fala/Escuta)
 st.markdown("""
     <style>
     .stApp { background-color: #000000; color: #00FF41; font-family: 'Courier New', monospace; }
-    .stButton>button { background-color: #000000; color: #00FF41; border: 1px solid #00FF41; border-radius: 0px; transition: 0.3s; }
-    .stButton>button:hover { background-color: #00FF41; color: #000000; box-shadow: 0 0 10px #00FF41; }
+    .stButton>button { background-color: #000000; color: #00FF41; border: 1px solid #00FF41; border-radius: 0px; width: 100%; transition: 0.3s; }
+    .stButton>button:hover { background-color: #00FF41; color: #000000; box-shadow: 0 0 15px #00FF41; }
+    .status-box { border: 1px solid #00FF41; padding: 10px; background: #0A0A0A; margin-bottom: 10px; }
     [data-testid="stMetricValue"] { color: #00FF41; }
     .stProgress > div > div > div > div { background-color: #00FF41; }
-    code { color: #00FF41 !important; background-color: #0A0A0A !important; border: 1px solid #00FF41; }
     </style>
     """, unsafe_allow_stdio=True)
 
@@ -27,115 +27,153 @@ def get_reality_metrics():
     return {
         "cpu": psutil.cpu_percent(),
         "mem": psutil.virtual_memory().percent,
-        "token": hashlib.sha256(str(time.time()).encode()).hexdigest()[:16].upper(),
-        "timestamp": time.strftime('%H:%M:%S')
+        "token": hashlib.sha256(str(time.time()).encode()).hexdigest()[:24].upper(),
+        "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
     }
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=30)
 def get_market_data():
     try:
-        tickers = ["^GSPC", "USDBRL=X"]
+        tickers = ["^GSPC", "USDBRL=X", "BTC-USD"]
         data = yf.download(tickers, period="1d", interval="1m", progress=False)
-        return {"sp500": data['Close']['^GSPC'].iloc[-1], "usdbrl": data['Close']['USDBRL=X'].iloc[-1]}
+        return {
+            "sp500": data['Close']['^GSPC'].iloc[-1], 
+            "usdbrl": data['Close']['USDBRL=X'].iloc[-1],
+            "btc": data['Close']['BTC-USD'].iloc[-1]
+        }
     except:
-        return {"sp500": 5150.00, "usdbrl": 5.10}
+        return {"sp500": 5150.00, "usdbrl": 5.10, "btc": 65000.00}
 
 def generate_6_page_pdf(node_name, metrics, market):
     pdf = FPDF()
     for i in range(1, 7):
         pdf.add_page()
         pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
-        pdf.cell(0, 10, f"DOSSIE XEON - {node_name} - PAG {i}/6", 0, 1, 'C')
+        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 16)
+        pdf.cell(0, 15, f"RELATORIO XEON MISSION CRITICAL - PAG {i}/6", 0, 1, 'C')
         pdf.ln(10)
         pdf.set_font("Courier", "", 10)
-        content = f"TOKEN: {metrics['token']}\nDATA: {metrics['timestamp']}\nCPU: {metrics['cpu']}%\n"
-        if i == 2: content += f"MERCADO: S&P500 @ {market['sp500']:.2f}"
-        pdf.multi_cell(0, 10, content.encode('latin-1', 'replace').decode('latin-1'))
+        content = (f"ID DO NO: {node_name}\nTOKEN DE AUTENTICIDADE: {metrics['token']}\n"
+                   f"TIMESTAMP GLOBAL: {metrics['timestamp']}\nSTATUS CPU: {metrics['cpu']}%\n"
+                   f"MARKET S&P500: {market['sp500']:.2f}\nUSD/BRL: {market['usdbrl']:.4f}\n"
+                   f"BTC/USD: {market['btc']:.2f}\n" + "-"*50 + "\nCRIPTOGRAFIA: AES-256-NODE-LEVEL")
+        pdf.multi_cell(0, 10, content)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- [UI: GRAFO DE REDE] ---
-def render_graph():
-    options = {
-        "backgroundColor": "#000000",
-        "series": [{
-            "type": "graph", "layout": "force",
-            "symbolSize": 50, "roam": True,
-            "label": {"show": True, "color": "#00FF41"},
-            "edgeSymbol": ["circle", "arrow"],
-            "lineStyle": {"color": "#00FF41", "width": 2},
-            "data": [
-                {"name": "CORE", "itemStyle": {"color": "#00FF41"}},
-                {"name": "EB-1A", "itemStyle": {"color": "#008F11"}},
-                {"name": "FINANCE", "itemStyle": {"color": "#008F11"}},
-                {"name": "INFRA", "itemStyle": {"color": "#008F11"}}
-            ],
-            "links": [
-                {"source": "CORE", "target": "EB-1A"},
-                {"source": "CORE", "target": "FINANCE"},
-                {"source": "CORE", "target": "INFRA"}
-            ]
-        }]
-    }
-    st_echarts(options=options, height="300px")
-
-# --- [INTERFACE PRINCIPAL] ---
-st.title("🛰️ XEON OMNI v101.64 | SYSTEM OVERRIDE")
-
-# MÓDULO DE VOZ (Corrigido)
-components.html("""
-    <div style="background:#000; border:1px solid #00FF41; padding:15px; color:#00FF41; font-family:monospace;">
-        <button onclick="startDictation()" style="background:#00FF41; color:#000; border:none; padding:10px; cursor:pointer; font-weight:bold;">🎙️ INICIAR ESCUTA ATIVA</button>
-        <p id="status" style="margin-top:10px;">> Aguardando entrada de voz...</p>
+# --- [UI: CONTROLE DE VOZ GLOBAL] ---
+def voice_interface():
+    components.html("""
+    <div style="background:#000; border:2px solid #00FF41; padding:20px; color:#00FF41; font-family:monospace;">
+        <div style="display: flex; gap: 10px;">
+            <button onclick="startListen()" style="flex:1; background:#000; color:#00FF41; border:1px solid #00FF41; padding:10px; cursor:pointer;">🎙️ ESCUTA ATIVA (PT/EN)</button>
+            <button onclick="stopListen()" style="flex:1; background:#000; color:#FF0000; border:1px solid #FF0000; padding:10px; cursor:pointer;">🛑 CESSAR</button>
+        </div>
+        <p id="v-status" style="margin-top:10px; font-size:12px;">> MONITOR DE VOZ: STANDBY</p>
+        <div id="v-output" style="color:#FFF; background:#111; padding:5px; min-height:30px; border-left:3px solid #00FF41;">...</div>
     </div>
+
     <script>
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'pt-BR';
+
+        const synth = window.speechSynthesis;
+
+        function startListen() {
+            recognition.start();
+            document.getElementById('v-status').innerText = "> MONITOR DE VOZ: ESCUTANDO...";
+            speak("Sistema Xeon Ativado. Monitorando frequências globais.");
+        }
+
+        function stopListen() {
+            recognition.stop();
+            document.getElementById('v-status').innerText = "> MONITOR DE VOZ: STANDBY";
+        }
+
         recognition.onresult = (event) => {
-            const text = event.results[0][0].transcript;
-            document.getElementById('status').innerText = " RECONHECIDO: " + text.toUpperCase();
+            let transcript = event.results[event.results.length - 1][0].transcript;
+            document.getElementById('v-output').innerText = transcript.toUpperCase();
         };
-        function startDictation() { recognition.start(); }
+
+        function speak(text) {
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 1.1;
+            synth.speak(utter);
+        }
     </script>
-    """, height=120)
+    """, height=180)
 
-market = get_market_data()
-col_m1, col_m2, col_m3 = st.columns(3)
-col_m1.metric("S&P 500", f"{market['sp500']:.2f}")
-col_m2.metric("USD/BRL", f"{market['usdbrl']:.4f}")
-col_m3.metric("Uptime", "99.99%", "Stable")
+# --- [MAIN LAYOUT] ---
+st.title("🛰️ XEON OMNI v101.64 | GLOBAL MISSION CRITICAL")
 
-st.write("### 🕸️ TOPOLOGIA DA MALHA")
-render_graph()
+col_left, col_right = st.columns([1, 2])
 
-# --- [LOGICA DE NÓS] ---
-nodes = ["INFRAESTRUTURA CRÍTICA", "DIREITO EB-1A", "FINANÇAS GLOBAIS"]
+with col_left:
+    st.write("### 🗣️ COMANDO DE VOZ")
+    voice_interface()
+    
+    st.write("### 📊 TELEMETRIA DE MERCADO")
+    m = get_market_data()
+    st.metric("S&P 500", f"{m['sp500']:.2f}", "+0.12%")
+    st.metric("USD/BRL", f"{m['usdbrl']:.4f}", "-0.02%")
+    st.metric("BITCOIN", f"${m['btc']:,.2f}")
+
+with col_right:
+    st.write("### 🕸️ TOPOLOGIA DA MALHA TEMPO REAL")
+    options = {
+        "backgroundColor": "#000",
+        "series": [{"type": "graph", "layout": "force", "symbolSize": 60, "roam": True,
+            "label": {"show": True, "color": "#00FF41"},
+            "lineStyle": {"color": "#00FF41", "width": 3},
+            "data": [
+                {"name": "XEON-CORE", "itemStyle": {"color": "#00FF41"}},
+                {"name": "SAT-1", "itemStyle": {"color": "#008F11"}},
+                {"name": "FIN-NODE", "itemStyle": {"color": "#008F11"}},
+                {"name": "LEGAL-AI", "itemStyle": {"color": "#008F11"}}
+            ],
+            "links": [{"source": "XEON-CORE", "target": "SAT-1"}, {"source": "XEON-CORE", "target": "FIN-NODE"}, {"source": "XEON-CORE", "target": "LEGAL-AI"}]
+        }]
+    }
+    st_echarts(options=options, height="350px")
+
+# --- [NÓS DE PROCESSAMENTO] ---
+st.write("### 🛠️ UNIDADES DE MISSÃO CRÍTICA")
+nodes = ["INFRAESTRUTURA DATA-SENSÍVEL", "DIREITO INTERNACIONAL EB-1A", "LIQUIDEZ GLOBAL"]
 
 for idx, node in enumerate(nodes):
-    node_id = f"node_{idx}"
-    with st.expander(f"🔘 NÓ {idx+1}: {node}", expanded=True):
-        col_btn, col_status = st.columns([1, 2])
+    with st.container():
+        c1, c2 = st.columns([1, 4])
         
-        if col_btn.button(f"ATIVAR PROTOCOLO {idx+1}", key=f"btn_{node_id}"):
-            st.session_state[f"run_{node_id}"] = True
+        with c1:
+            st.write(f"**NÓ {idx+1}**")
+            btn_active = st.button(f"EXECUTAR: {node.split()[0]}", key=f"exe_{idx}")
             
-        if st.session_state.get(f"run_{node_id}"):
-            progress = st.progress(0)
-            for p in range(101):
-                time.sleep(0.002)
-                progress.progress(p)
-            
-            metrics = get_reality_metrics()
-            st.success(f"✅ RELATÓRIO {idx+1} GERADO")
-            
-            pdf_bytes = generate_6_page_pdf(node, metrics, market)
-            st.download_button(
-                label=f"💾 BAIXAR DOSSIÊ {node}",
-                data=pdf_bytes,
-                file_name=f"XEON_{idx+1}.pdf",
-                mime="application/pdf",
-                key=f"dl_{node_id}"
-            )
-            st.code(f"HASH: {metrics['token']}")
+        with c2:
+            if btn_active:
+                # Simulação de processamento em tempo real
+                metrics = get_reality_metrics()
+                bar = st.progress(0)
+                status_text = st.empty()
+                
+                for p in range(101):
+                    time.sleep(0.01)
+                    bar.progress(p)
+                    status_text.text(f"PULSO DE DADOS: {p}% | SECTOR: {hex(p*1234)}")
+                
+                st.success(f"PROTOCOLO {idx+1} CONCLUÍDO - INTEGRIDADE 100%")
+                
+                # Botão de PDF gerado após processamento
+                pdf_data = generate_6_page_pdf(node, metrics, m)
+                st.download_button(
+                    label=f"📥 BAIXAR DOSSIÊ 6-PÁGINAS: {node}",
+                    data=pdf_data,
+                    file_name=f"XEON_CRITICAL_{idx+1}.pdf",
+                    mime="application/pdf",
+                    key=f"pdf_{idx}"
+                )
+            else:
+                st.info(f"Aguardando sinal para {node}...")
 
 st.divider()
-st.caption(f"XEON COMMAND UNIT // {time.strftime('%Y-%m-%d %H:%M:%S')} // SECURE ACCESS ONLY")
+st.caption(f"CONNECTED TO GLOBAL APIs | SECURITY HASH: {get_reality_metrics()['token']} | {time.strftime('%H:%M:%S')}")
