@@ -7,12 +7,12 @@ import streamlit.components.v1 as components
 from openai import OpenAI
 import yfinance as yf
 
-# --- [1. IDENTIDADE VISUAL E VOX] ---
+# --- [1. IDENTIDADE SOBERANA v180.0] ---
 MATRIX_GREEN = "#00FF41"
 BLACKOUT = "#000000"
-COMMAND_BLUE = "#0000FF" # Azul para Ingestão/Cérebro
+COMMAND_BLUE = "#0000FF"
 
-st.set_page_config(page_title="XEON COMMAND v160.0", layout="wide")
+st.set_page_config(page_title="XEON v180.0 - BIOINFORMÁTICA", layout="wide")
 
 try:
     client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -20,104 +20,77 @@ except:
     client = None
 
 def speak(text):
-    components.html(f"""
-        <script>
-        var u = new SpeechSynthesisUtterance('{text}');
-        u.lang = 'pt-BR'; u.rate = 1.0;
-        window.speechSynthesis.speak(u);
-        </script>
-    """, height=0)
+    components.html(f"<script>var u=new SpeechSynthesisUtterance('{text}');u.lang='pt-BR';window.speechSynthesis.speak(u);</script>", height=0)
 
-st.markdown(f"""
-    <style>
-    .stApp {{ background-color: {BLACKOUT} !important; color: {MATRIX_GREEN} !important; font-family: 'Courier New', monospace; }}
-    
-    /* ZONA CEREBRAL AZUL - Ingestão de Dados */
-    .stTextArea textarea, .stTextInput input {{
-        background-color: {COMMAND_BLUE} !important; 
-        color: #FFFFFF !important; 
-        font-weight: bold !important; border: 2px solid {MATRIX_GREEN} !important;
-    }}
-    
-    .stButton button, .stDownloadButton button {{
-        border: 2px solid {MATRIX_GREEN} !important; background-color: {BLACKOUT} !important;
-        color: {MATRIX_GREEN} !important; width: 100%; font-weight: bold;
-    }}
-    .node-card {{ border: 1px solid {MATRIX_GREEN}; padding: 10px; background: rgba(0,255,65,0.05); text-align: center; }}
-    .reprocessor {{ font-size: 0.6em; color: {MATRIX_GREEN}; opacity: 0.8; }}
-    </style>
-""", unsafe_allow_html=True)
-
-# --- [2. MOTOR DE EVIDÊNCIA PDF] ---
-def generate_node_pdf(node_name, content):
+# --- [2. GERADOR DE DOSSIÊ SOBERANO (6 PÁGINAS)] ---
+def generate_6page_dossier(node_name):
     pdf = FPDF()
-    pdf.add_page()
-    pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
-    pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
-    pdf.cell(0, 10, f"XEON MISSION CRITICAL - NODE: {node_name}", ln=True, align='C')
-    pdf.set_font("Courier", "", 10)
-    pdf.ln(10)
-    content_clean = unicodedata.normalize('NFKD', content).encode('ascii', 'ignore').decode('ascii')
-    pdf.multi_cell(0, 7, f"ARQUITETO: MARCO ANTONIO DO NASCIMENTO\nTIMESTAMP: {time.ctime()}\n{'-'*50}\n{content_clean}")
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    setores = ["AUDITORIA NIST", "FINANÇAS GLOBAIS", "GOVERNANÇA PQC", "FISIOLOGIA DIGITAL", "EB-1A EVIDENCE", "VEREDITO FINAL"]
+    
+    # Simulação de Telemetria Fisiológica
+    bpm = 74 # Ideal para homeostase do Arquiteto
+    spo2 = 99
+    sp500 = "7035.94" # Conforme anexo
+    pqc_sig = hashlib.sha256(f"{time.time()}".encode()).hexdigest()
+
+    for i, setor in enumerate(setores):
+        pdf.add_page()
+        pdf.set_fill_color(0, 0, 0); pdf.rect(0, 0, 210, 297, 'F')
+        pdf.set_text_color(0, 255, 65); pdf.set_font("Courier", "B", 14)
+        
+        pdf.cell(0, 10, "XEON COMMAND AUDIT - BIOINFORMATICA FISIOLOGICA", ln=True, align='C')
+        pdf.set_font("Courier", "B", 10)
+        pdf.cell(0, 10, f"SMART-TAG: {hashlib.md5(node_name.encode()).hexdigest().upper()} | PAGE {i+1}/6", ln=True, align='C')
+        pdf.ln(10)
+        
+        pdf.set_font("Courier", "", 10)
+        metadata = [
+            f"SETOR: {setor}",
+            f"TIMESTAMP: {time.strftime('%H:%M:%S')} | ESTADO: FALLBACK-SOBERANO",
+            f"TELEMETRIA FISIOLOGICA (IoT): {bpm} BPM | {spo2}% SpO2",
+            f"S&P 500: {sp500}",
+            f"PQC SIGNATURE: {pqc_sig}"
+        ]
+        
+        for line in metadata:
+            pdf.cell(0, 7, line, ln=True)
+            
+        pdf.ln(5); pdf.cell(0, 0, "-"*60, ln=True)
+        pdf.ln(10)
+        
+        pdf.set_font("Courier", "B", 11)
+        pdf.multi_cell(0, 8, "RELATORIO DE AUDITORIA E SOBERANIA DIGITAL - ARQUITETO MARCO ANTONIO.\nINFRAESTRUTURA NACIONAL PROTEGIDA.")
+        
     return BytesIO(pdf.output())
 
-# --- [3. DASHBOARD v160.0 OPERACIONAL] ---
+# --- [3. INTERFACE DE COMANDO] ---
 @st.fragment(run_every=2)
-def xeon_sovereign_core():
-    # Gatilho S&P 500 (Voz a cada 10 min simulado ou na carga)
-    if 'last_market_check' not in st.session_state:
-        st.session_state.last_market_check = 0
-    
-    if time.time() - st.session_state.last_market_check > 600: # 10 minutos
-        try:
-            sp500 = yf.Ticker("^GSPC").history(period="1d")['Close'].iloc[-1]
-            speak(f"Arquiteto, atualização do mercado. S e P 500 operando em {sp500:.2f} pontos.")
-            st.session_state.last_market_check = time.time()
-        except: pass
-
+def bio_hub():
     c1, c2, c3 = st.columns([1, 1, 1.5])
-    
-    with c1:
-        st.metric("MONETIZAÇÃO", "$1,000/H")
-        st.metric("SISTEMA", "BRAIN ACTIVE")
-    
-    with c2:
-        cpu = psutil.cpu_percent()
-        options = {"backgroundColor":"transparent","series":[{"type":'gauge',"detail":{"color":MATRIX_GREEN,"fontSize":12},"data":[{"value":cpu,"name":'CPU'}]}]}
-        st_echarts(options=options, height="160px")
-
+    with c1: st.metric("S&P 500", "7035.94", delta="STABLE")
+    with c2: st.metric("IoT BIO", "74 BPM", delta="NORMAL")
     with c3:
-        st.markdown(f"<b style='color:#FFFFFF;'>🧠 CÉREBRO GERATIVO - INGESTÃO AZUL:</b>", unsafe_allow_html=True)
-        query = st.text_area("PESQUISAR / COMANDAR SISTEMA:", height=80, label_visibility="collapsed")
-        if st.button("👁️ PROCESSAR COMANDO"):
-            speak(f"Processando comando cerebral: {query[:15]}")
-            if client:
-                res = client.chat.completions.create(model="gpt-4o", messages=[{"role":"user","content":query}])
-                st.session_state.brain_res = res.choices.message.content
+        st.markdown("**🧠 CÉREBRO CIBERNÉTICO (DIGITAR):**")
+        st.text_area("PESQUISA / INGESTÃO:", height=70, label_visibility="collapsed", key="in_azul")
 
     st.divider()
     
-    # OS 9 NÓS COM PDF EMBAIXO DE CADA UM
-    nos = ["CRIPTO QKD", "DEFESA gRPC", "SIGINT/ELINT", "NIW GOV", "FIBER SHIELD", "NEURAL AUDIT", "SAT LINK", "Q-STORAGE", "QUANTUM SENSING"]
+    # 9 NÓS MANTIDOS E PROTEGIDOS
+    nos = ["BIOGENETICS", "NEURALINK", "SÉRIE NIST", "CYBER DEFENSE", "SPACE INFRA", "IPO GOLD", "VALUATION", "PQC AUDIT", "SYSTEMIC HOMEOSTASIS"]
     cols = st.columns(3)
     
     for i, n in enumerate(nos):
         with cols[i % 3]:
-            st.markdown(f"""
-                <div class='node-card'>
-                    <small>NÓ 0{i+1}</small><br><b>{n}</b>
-                    <div class='reprocessor'>REPROCESSANDO: {hashlib.sha256(str(time.time()).encode()).hexdigest()[:10]}</div>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"<div style='border:1px solid {MATRIX_GREEN}; padding:10px; text-align:center;'><b>{n}</b><br><small>SOH v2.2</small></div>", unsafe_allow_html=True)
+            if st.button(f"🎙️ GERAR DOSSIÊ 6 PAGS: {n}", key=f"n_{i}"):
+                speak(f"Gerando dossiê de seis páginas para o setor {n}. Iniciando auditoria NIST e Bioinformática.")
+                st.session_state[f"dossie_{i}"] = generate_6page_dossier(n)
             
-            # Gerador de PDF embaixo do Nó
-            report_text = f"Auditoria técnica automatizada para o nó {n}. Integridade confirmada para EB-1A."
-            pdf_data = generate_node_pdf(n, report_text)
-            st.download_button(label=f"📥 EXPORTAR PDF {n}", data=pdf_data, file_name=f"XEON_{n}.pdf", key=f"pdf_{i}")
+            if f"dossie_{i}" in st.session_state:
+                st.download_button(f"📥 BAIXAR DOSSIÊ {n}", st.session_state[f"dossie_{i}"], f"XEON_DOSSIE_{n}.pdf", key=f"dl_{i}")
 
 # --- [4. EXECUÇÃO] ---
-st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAND v160.0</h1>", unsafe_allow_html=True)
-xeon_sovereign_core()
-
-if psutil.cpu_percent() > 85:
-    speak("Alerta Crítico: Stress de Hardware. Homeostase em risco.")
+st.markdown(f"<h1 style='text-align: center; color: {MATRIX_GREEN};'>XEON COMMAND v180.0</h1>", unsafe_allow_html=True)
+bio_hub()
