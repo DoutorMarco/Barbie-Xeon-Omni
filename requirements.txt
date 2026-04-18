@@ -15,4 +15,3 @@ cryptography
 pydantic
 scikit-learn
 pyvis
-plotly
