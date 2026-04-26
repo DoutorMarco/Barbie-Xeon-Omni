@@ -1,0 +1,19 @@
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    let core = XeonCore { temperature_k: 35.0, homeostasis_score: 0.984 };
+    
+    // Chave de 128-bits definida no hardware (Exemplo Soberano)
+    core.init_crypto([0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C]);
+    core.init_watchdog();
+
+    loop {
+        if core.verify_integrity() {
+            // Encripta o score de homeostase para proteção contra Memory Dumps
+            let _secure_score = core.encrypt_block(core.homeostasis_score as u32);
+            core.feed_watchdog();
+        } else {
+            core.execute_isolation();
+        }
+        core::hint::spin_loop();
+    }
+}
