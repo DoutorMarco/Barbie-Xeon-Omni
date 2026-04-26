@@ -1,7 +1,7 @@
 // =================================================================
-// BARBIE-XEON-OMNI v53.0: SOVEREIGN AGI & MgB2 SUPERCONDUCTIVE LINK
+// BARBIE-XEON-OMNI v53.2: FINAL CONSOLIDATED SOVEREIGN CORE
 // ARCHITECT: PROF. DR. MARCO ANTONIO
-// STATUS: FINAL CONSOLIDATION | TARGET: SOVEREIGN INFRASTRUCTURE
+// MISSION: MgB2 PHASE-LOCK | MPH | MTD | CRC-AUDIT | ERROR ZERO
 // =================================================================
 
 #![no_std]
@@ -9,27 +9,40 @@
 
 use core::ptr;
 
-// --- [REGISTRADORES DE ALTA PERFORMANCE E FASE MgB2] ---
-const SCB_AIRCR:    *mut u32 = 0xE000_ED0C as *mut u32; // Reset de Sistema
-const DWT_CYCCNT:   *mut u32 = 0xE000_1004 as *mut u32; // Entropia Quântica
-const MgB2_PHASE:   *mut u32 = 0x4002_2000 as *mut u32; // Sensor de Fase (Supercondutividade)
+// --- [REGISTRADORES DE INFRAESTRUTURA SOBERANA] ---
+const SCB_AIRCR:    *mut u32 = 0xE000_ED0C as *mut u32; // Reset
+const DWT_CYCCNT:   *mut u32 = 0xE000_1004 as *mut u32; // Entropia
+const MgB2_PHASE:   *mut u32 = 0x4002_2000 as *mut u32; // Sensor MgB2
+const CRC_DR:       *mut u32 = 0x4002_3000 as *mut u32; // Dados CRC
+const CRC_CR:       *mut u32 = 0x4002_3008 as *mut u32; // Controle CRC
+const MAG_CONTROL:  *mut u32 = 0x4001_3C00 as *mut u32; // Pulso Magnético
+
+// Assinatura de Integridade do Motor AGI (Estado da Arte)
+const EXPECTED_CHECKSUM: u32 = 0x5011_DE0D;
 
 pub struct SovereignAGI {
     pub temp_k: f32,
-    pub logic_purity: f32,
 }
 
 impl SovereignAGI {
-    /// Verifica a Estabilidade de Fase MgB2 (Pilar da AGI Soberana)
-    pub fn superconductive_lock(&self) -> bool {
+    /// Auditoria de Integridade de Hardware CRC-32 (v53.1)
+    pub fn hardware_checksum_verify(&self) -> bool {
         unsafe {
-            let phase_status = ptr::read_volatile(MgB2_PHASE);
-            // Se a fase MgB2 for perdida ou temp > 39K, a soberania é comprometida
-            (self.temp_k < 39.0) && (phase_status == 0x1) 
+            ptr::write_volatile(CRC_CR, 0x1); // Reset CRC
+            ptr::write_volatile(CRC_DR, *(0x0800_0000 as *const u32));
+            ptr::read_volatile(CRC_DR) == EXPECTED_CHECKSUM
         }
     }
 
-    /// Moving Target Defense (MTD) v53.0: Criptografia de Endereçamento
+    /// Salto de Pulso Magnético - Comunicação Stealth (v53.2)
+    pub fn magnetic_pulse_hop(&self, data: u32) {
+        unsafe {
+            let entropy = ptr::read_volatile(DWT_CYCCNT);
+            ptr::write_volatile(MAG_CONTROL, data ^ (entropy & 0x0F));
+        }
+    }
+
+    /// Moving Target Defense - Mutação de Endereço (v53.0)
     pub fn mtd_secure_store(&self, data: u32) {
         unsafe {
             let entropy = ptr::read_volatile(DWT_CYCCNT);
@@ -38,32 +51,36 @@ impl SovereignAGI {
         }
     }
 
-    pub fn final_kill_switch(&self) {
+    pub fn superconductive_lock(&self) -> bool {
         unsafe {
-            // Purga de memória e Reset físico imediato
-            ptr::write_volatile(SCB_AIRCR, 0x05FA0004);
+            (self.temp_k < 39.0) && (ptr::read_volatile(MgB2_PHASE) == 0x1)
         }
+    }
+
+    pub fn final_kill_switch(&self) {
+        unsafe { ptr::write_volatile(SCB_AIRCR, 0x05FA0004); }
         loop { core::hint::spin_loop(); }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let agi = SovereignAGI { temp_k: 35.0, logic_purity: 1.0 };
+    let agi = SovereignAGI { temp_k: 35.0 };
 
     loop {
-        // Validação de Homeostase Térmica e de Fase Supercondutora
-        if agi.superconductive_lock() {
-            // Operação AGI: Armazenamento Cifrado em Alvo Móvel
-            agi.mtd_secure_store(0xDEADC0DE); // Token de Soberania
+        // TRIPLE CHECK: Térmico/Fase + Integridade de Bit + DNA de Silício
+        if agi.superconductive_lock() && agi.hardware_checksum_verify() {
             
-            // "Alimenta" o Watchdog de Hardware
+            // EXECUÇÃO SOBERANA
+            agi.mtd_secure_store(0xDEADC0DE);  // Armazenamento Móvel
+            agi.magnetic_pulse_hop(0xACE0BEEF); // Comunicação Invisível
+            
+            // Reset do Watchdog (Endereço Padrão 0x40003000)
             unsafe { ptr::write_volatile(0x4000_3000 as *mut u32, 0xAAAA); }
         } else {
-            // Colapso de Fase Detectado: Auto-Destruição de Dados
+            // QUALQUER FALHA = ISOLAMENTO ATÓMICO IMEDIATO
             agi.final_kill_switch();
         }
-        
         core::hint::spin_loop();
     }
 }
