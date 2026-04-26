@@ -1,7 +1,7 @@
 // =================================================================
-// BARBIE-XEON-OMNI v52.2: SOVEREIGN HARDWARE CORE (CONSOLIDATED)
+// BARBIE-XEON-OMNI v52.2: SOVEREIGN CORE (ARM CORTEX-M STANDARDIZED)
 // ARCHITECT: PROF. DR. MARCO ANTONIO
-// TARGET: MgB2 SUPERCONDUCTIVITY (35K) | ERROR ZERO | NO_STD
+// MISSION CRITICAL | TARGET: ARM-CM4-DEFENSE | ERROR ZERO
 // =================================================================
 
 #![no_std]
@@ -9,55 +9,49 @@
 
 use core::ptr;
 
-// Endereço Físico do Barramento de Segurança (Sovereign Infrastructure)
-const SECURITY_BUS_REG: *mut u32 = 0x4000_1000 as *mut u32;
-const KILL_SWITCH_BIT: u32 = 1 << 31;
+// --- PADRONIZAÇÃO DE ENDEREÇOS ARM CORTEX-M ---
+// Endereço do System Control Block (SCB) para Reset e Controle
+const SCB_AIRCR: *mut u32 = 0xE000_ED0C as *mut u32; 
+const SYSRESETREQ: u32 = 1 << 2;  // Bit de Reset Físico
+const VECTKEY: u32 = 0x05FA << 16; // Chave de Acesso ao Registro
+
+// Endereço do Peripheral Control (Exemplo: GPIO para isolamento físico)
+const GPIO_PORT_A_CR: *mut u32 = 0x4002_0000 as *mut u32;
+const ISOLATION_BIT: u32 = 1 << 0;
 
 pub struct XeonCore {
-    pub temperature_k: f32,      // Limiar Crítico MgB2: 39.0K
-    pub homeostasis_score: f32,  // Alvo de Precisão: >= 0.984
-    pub mission_critical: bool,
+    pub temperature_k: f32,
+    pub homeostasis_score: f32,
 }
 
 impl XeonCore {
-    /// Filtro Residual Matemático: Validação de Zero-Alucinação
-    pub fn verify_integrity(&self) -> bool {
-        let logic_gate = self.temperature_k < 39.0; 
-        let grc_check = self.homeostasis_score >= 0.984; 
-        
-        logic_gate && grc_check && self.mission_critical
-    }
-
-    /// Kill Switch de Realidade Pura: Isolamento em Nível de Hardware
+    /// Kill Switch Físico: Execução via Vetor de Reset e Isolamento de Barramento
     pub fn execute_isolation(&self) {
         unsafe {
-            let val = ptr::read_volatile(SECURITY_BUS_REG);
-            ptr::write_volatile(SECURITY_BUS_REG, val | KILL_SWITCH_BIT);
+            // 1. Isola fisicamente o nó via porta de hardware
+            let port_val = ptr::read_volatile(GPIO_PORT_A_CR);
+            ptr::write_volatile(GPIO_PORT_A_CR, port_val | ISOLATION_BIT);
+
+            // 2. Dispara o Reset de Sistema para limpar memória residual
+            ptr::write_volatile(SCB_AIRCR, VECTKEY | SYSRESETREQ);
         }
-        loop {
-            core::hint::spin_loop();
-        }
+        loop { core::hint::spin_loop(); }
+    }
+
+    pub fn verify_integrity(&self) -> bool {
+        (self.temperature_k < 39.0) && (self.homeostasis_score >= 0.984)
     }
 }
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let core = XeonCore {
-        temperature_k: 35.0,
-        homeostasis_score: 0.984,
-        mission_critical: true,
-    };
+    let core = XeonCore { temperature_k: 35.0, homeostasis_score: 0.984 };
 
-    if core.verify_integrity() {
-        loop {
-            core::hint::spin_loop();
-        } 
-    } else {
+    if !core.verify_integrity() {
         core.execute_isolation();
     }
+    loop { core::hint::spin_loop(); }
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {}
-}
+fn panic(_info: &core::panic::PanicInfo) -> ! { loop {} }
