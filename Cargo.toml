@@ -1,0 +1,15 @@
+[package]
+name = "xeon_firmware"
+version = "52.2.0"
+edition = "2021"
+authors = ["Prof. Dr. Marco Antonio"]
+description = "XEON v1.7 Sovereign Core for ARM Cortex-M"
+
+[lib]
+crate-type = ["staticlib"] # Necessário para integração com Keil/C
+
+[profile.release]
+opt-level = "s"      # Otimiza para tamanho (essencial em firmware)
+panic = "abort"      # Remove overhead de stack unwinding
+lto = true           # Link Time Optimization para Erro Zero
+codegen-units = 1    # Garante determinismo matemático na compilação
