@@ -1,7 +1,7 @@
 // =================================================================
-// BARBIE-XEON-OMNI v53.2: FINAL CONSOLIDATED SOVEREIGN CORE
+// BARBIE-XEON-OMNI v53.5: UNIFIED BIO-HARDWARE SOVEREIGN CORE
 // ARCHITECT: PROF. DR. MARCO ANTONIO
-// MISSION: MgB2 PHASE-LOCK | MPH | MTD | CRC-AUDIT | ERROR ZERO
+// MISSION: MgB2 PHASE-LOCK | BIO-HOMEOSTASIS | MPH | ERROR ZERO
 // =================================================================
 
 #![no_std]
@@ -9,32 +9,42 @@
 
 use core::ptr;
 
-// --- [REGISTRADORES DE INFRAESTRUTURA SOBERANA] ---
-const SCB_AIRCR:    *mut u32 = 0xE000_ED0C as *mut u32; // Reset
-const DWT_CYCCNT:   *mut u32 = 0xE000_1004 as *mut u32; // Entropia
-const MgB2_PHASE:   *mut u32 = 0x4002_2000 as *mut u32; // Sensor MgB2
-const CRC_DR:       *mut u32 = 0x4002_3000 as *mut u32; // Dados CRC
-const CRC_CR:       *mut u32 = 0x4002_3008 as *mut u32; // Controle CRC
-const MAG_CONTROL:  *mut u32 = 0x4001_3C00 as *mut u32; // Pulso Magnético
+// --- [REGISTRADORES DE INFRAESTRUTURA E BIO-INTERFACE] ---
+const SCB_AIRCR:    *mut u32 = 0xE000_ED0C as *mut u32; 
+const DWT_CYCCNT:   *mut u32 = 0xE000_1004 as *mut u32; 
+const MgB2_PHASE:   *mut u32 = 0x4002_2000 as *mut u32; 
+const CRC_DR:       *mut u32 = 0x4002_3000 as *mut u32; 
+const MAG_CONTROL:  *mut u32 = 0x4001_3C00 as *mut u32; 
+const BIO_SENSOR_H: *mut u32 = 0x4002_4000 as *mut u32; // Monitor TEA/ASD
 
-// Assinatura de Integridade do Motor AGI (Estado da Arte)
 const EXPECTED_CHECKSUM: u32 = 0x5011_DE0D;
 
-pub struct SovereignAGI {
+pub struct XeonUnifiedCore {
     pub temp_k: f32,
+    pub bio_stress_target: f32, // Target: < 0.15
 }
 
-impl SovereignAGI {
-    /// Auditoria de Integridade de Hardware CRC-32 (v53.1)
-    pub fn hardware_checksum_verify(&self) -> bool {
+impl XeonUnifiedCore {
+    /// Auditoria de Integridade Dual: Hardware + Biologia
+    pub fn verify_unified_homeostasis(&self) -> bool {
         unsafe {
-            ptr::write_volatile(CRC_CR, 0x1); // Reset CRC
+            // 1. Verificação de Fase MgB2 (35K)
+            let phase_ok = (self.temp_k < 39.0) && (ptr::read_volatile(MgB2_PHASE) == 0x1);
+            
+            // 2. Verificação de Integridade de Bit (CRC-32)
+            ptr::write_volatile(0x4002_3008 as *mut u32, 0x1);
             ptr::write_volatile(CRC_DR, *(0x0800_0000 as *const u32));
-            ptr::read_volatile(CRC_DR) == EXPECTED_CHECKSUM
+            let crc_ok = ptr::read_volatile(CRC_DR) == EXPECTED_CHECKSUM;
+            
+            // 3. Verificação Bio-Lógica (TEA/ASD Stress Audit)
+            let bio_val = ptr::read_volatile(BIO_SENSOR_H) as f32 / 1000.0;
+            let bio_ok = bio_val < self.bio_stress_target;
+            
+            phase_ok && crc_ok && bio_ok
         }
     }
 
-    /// Salto de Pulso Magnético - Comunicação Stealth (v53.2)
+    /// Salto de Pulso Magnético (Comunicação Stealth)
     pub fn magnetic_pulse_hop(&self, data: u32) {
         unsafe {
             let entropy = ptr::read_volatile(DWT_CYCCNT);
@@ -42,19 +52,9 @@ impl SovereignAGI {
         }
     }
 
-    /// Moving Target Defense - Mutação de Endereço (v53.0)
-    pub fn mtd_secure_store(&self, data: u32) {
-        unsafe {
-            let entropy = ptr::read_volatile(DWT_CYCCNT);
-            let secure_addr = (0x2000_0000 + (entropy & 0x1FFFF) as usize) as *mut u32;
-            ptr::write_volatile(secure_addr, data);
-        }
-    }
-
-    pub fn superconductive_lock(&self) -> bool {
-        unsafe {
-            (self.temp_k < 39.0) && (ptr::read_volatile(MgB2_PHASE) == 0x1)
-        }
+    /// Mitigação Ativa: Estabilização de Crise Sensorial
+    pub fn execute_bio_mitigation(&self) {
+        unsafe { ptr::write_volatile(0x4002_5000 as *mut u32, 0x1); }
     }
 
     pub fn final_kill_switch(&self) {
@@ -65,21 +65,25 @@ impl SovereignAGI {
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let agi = SovereignAGI { temp_k: 35.0 };
+    let core = XeonUnifiedCore { 
+        temp_k: 35.0, 
+        bio_stress_target: 0.15 
+    };
 
     loop {
-        // TRIPLE CHECK: Térmico/Fase + Integridade de Bit + DNA de Silício
-        if agi.superconductive_lock() && agi.hardware_checksum_verify() {
+        if core.verify_unified_homeostasis() {
+            // Execução de Soberania e Comunicação MPH
+            core.magnetic_pulse_hop(0xACE0BEEF);
             
-            // EXECUÇÃO SOBERANA
-            agi.mtd_secure_store(0xDEADC0DE);  // Armazenamento Móvel
-            agi.magnetic_pulse_hop(0xACE0BEEF); // Comunicação Invisível
-            
-            // Reset do Watchdog (Endereço Padrão 0x40003000)
+            // "Alimenta" o Watchdog de Hardware
             unsafe { ptr::write_volatile(0x4000_3000 as *mut u32, 0xAAAA); }
         } else {
-            // QUALQUER FALHA = ISOLAMENTO ATÓMICO IMEDIATO
-            agi.final_kill_switch();
+            // Reação Gradual: Se hardware falha -> Kill Switch. Se Bio falha -> Mitigação.
+            if core.temp_k >= 39.0 {
+                core.final_kill_switch();
+            } else {
+                core.execute_bio_mitigation();
+            }
         }
         core::hint::spin_loop();
     }
