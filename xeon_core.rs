@@ -39,19 +39,27 @@ impl XeonCore {
     }
 
     pub fn verify_integrity(&self) -> bool {
+        // Validação Matemática: MgB2 Superconductivity Limit (39K) + Score
         (self.temperature_k < 39.0) && (self.homeostasis_score >= 0.984)
     }
 }
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let core = XeonCore { temperature_k: 35.0, homeostasis_score: 0.984 };
+    let core = XeonCore { 
+        temperature_k: 35.0, 
+        homeostasis_score: 0.984 
+    };
 
     if !core.verify_integrity() {
+        // Ativação do Protocolo de Defesa Ativa
         core.execute_isolation();
     }
+    
     loop { core::hint::spin_loop(); }
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! { loop {} }
+fn panic(_info: &core::panic::PanicInfo) -> ! { 
+    loop { core::hint::spin_loop(); } 
+}
