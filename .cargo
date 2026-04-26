@@ -1,0 +1,10 @@
+[build]
+# Target para ARM Cortex-M4F (comun em infraestrutura de defesa)
+target = "thumbv7em-none-eabihf"
+
+[target.thumbv7em-none-eabihf]
+rustflags = [
+  "-C", "link-arg=-Tlink.x",      # Usa o script de linkagem de hardware
+  "-C", "no-stack-check",         # Reduz latência em nível sub-kernel
+  "-C", "relocation-model=static" # Garante endereços de memória fixos
+]
